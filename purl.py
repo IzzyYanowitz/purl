@@ -10,13 +10,6 @@ except:
 
 knitout_filename = filename + ".k"
 
-knitout_lines = []
-""";!knitout-2
-;;Carriers: 1 2 3 4 5 6 7 8 9 10
-;;Machine: SWG091N2
-;;Gauge: 13
-;;Width: 450
-;;Position: Keep"""
 carriers = list(range(1, 11))
 
 
@@ -38,4 +31,12 @@ def header(
     ]
 
 
-print("\n".join(header()))
+def output(knitout_filename: str, lines: list[str]) -> None:
+    with open(knitout_filename, "w") as file:
+        file.write("\n".join(lines))
+        file.write("\n")
+
+
+knitout = header()
+
+output(knitout_filename, knitout)
