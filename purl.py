@@ -69,6 +69,12 @@ class NeedleList:
     def __repr__(self):
         return str([str(i) for i in self.needles])
 
+    def __getitem__(self, index: int | slice) -> Needle:
+        if isinstance(index, slice):
+            return NeedleList(self.needles[index])
+
+        return self.needles[index]
+
     def sorted(self, direction: CarrierDirection):
         sorted_needles = sorted(self.needles)
 
@@ -217,11 +223,10 @@ def backwards_loop_cast_on(
     needles: NeedleList, direction: CarrierDirection, carrier: Carrier
 ) -> KnitOut:
 
-    inh = inhook(carrier)
-
     return (
         inhook(carrier)
-        + backwards_tuck_needles(direction, needles, carrier)
+        + tuck(direction=direction, needle=needles[-1], carrier=carrier)
+        + backwards_tuck_needles(direction, needles[:-1], carrier)
         + releasehook(carrier)
         + knit_needles(direction=direction.opposite(), needles=needles, carrier=carrier)
     )
@@ -252,7 +257,7 @@ def xfer(
 
 needles = NeedleList(Needle(i, KnittingMachineBed.FRONT) for i in range(390, 420))
 
-knitout = (
+""" knitout = (
     header()
     + backwards_loop_cast_on(
         needles=needles, direction=CarrierDirection.LEFT, carrier=Carrier(3)
@@ -260,7 +265,10 @@ knitout = (
     + knit_rows(
         direction=CarrierDirection.LEFT, needles=needles, carrier=Carrier(3), height=30
     )
-)
+) """
 
+knitout = header() + backwards_loop_cast_on(
+    needles=needles, direction=CarrierDirection.LEFT, carrier=Carrier(3)
+)
 
 output(knitout_filename, knitout)
