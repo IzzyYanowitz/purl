@@ -7,6 +7,7 @@ from enum import StrEnum
 
 from typing import TypeAlias
 from functools import total_ordering
+from itertools import chain
 
 Carrier: TypeAlias = int
 KnitOut: TypeAlias = list[str]
@@ -15,6 +16,11 @@ KnitOut: TypeAlias = list[str]
 class CarrierDirection(StrEnum):
     LEFT = "-"
     RIGHT = "+"
+
+    def opposite(self):
+        if self == CarrierDirection.LEFT:
+            return CarrierDirection.RIGHT
+        return CarrierDirection.LEFT
 
 
 class KnittingMachineBed(StrEnum):
@@ -46,24 +52,30 @@ class Needle:
             and self.bed == KnittingMachineBed.FRONT
         )
 
+    def __int__(self):
+        return self.index
+
     def opposite_needle(self):
         return Needle(index=self.index, bed=self.bed.opposite)
 
 
 class NeedleList:
     def __init__(self, needles: list[Needle]):
-        self.needles = needles
+        self.needles = list(needles)
 
     def __iter__(self):
         return iter(self.needles)
+
+    def __repr__(self):
+        return str([str(i) for i in self.needles])
 
     def sorted(self, direction: CarrierDirection):
         sorted_needles = sorted(self.needles)
 
         if direction == CarrierDirection.RIGHT:
-            return sorted_needles
+            return NeedleList(sorted_needles)
 
-        return sorted_needles[::-1]
+        return NeedleList(sorted_needles[::-1])
 
     def opposite(self):
         return NeedleList(i.opposite() for i in self.needles)
@@ -112,10 +124,6 @@ def output(knitout_filename: str, lines: KnitOut) -> None:
 """
 
 
-def cast_on(needles: list[Needle], direction: CarrierDirection, carrier: Carrier):
-    pass
-
-
 def inhook(carrier: int) -> KnitOut:
     return KnitOut([f"inhook {carrier}"])
 
@@ -135,10 +143,33 @@ def tuck(direction: CarrierDirection, needle: Needle, carrier: int) -> KnitOut:
 def tuck_needles(
     direction: CarrierDirection, needles: NeedleList, carrier: int
 ) -> KnitOut:
-    return KnitOut(
+    knitout = KnitOut(
         tuck(needle=n, direction=direction, carrier=carrier)
         for n in needles.sorted(direction)
     )
+
+    return list(chain.from_iterable(knitout))
+
+
+def backwards_tuck(
+    direction: CarrierDirection, needle: Needle, carrier: int
+) -> KnitOut:
+
+    return miss(direction=direction, needle=needle, carrier=carrier) + tuck(
+        direction=direction.opposite(), needle=needle, carrier=carrier
+    )
+
+
+def backwards_tuck_needles(
+    direction: CarrierDirection, needles: NeedleList, carrier: int
+) -> KnitOut:
+    sorted_needles = needles.sorted(direction)
+    knitout = KnitOut(
+        backwards_tuck(needle=n, direction=direction, carrier=carrier)
+        for n in sorted_needles
+    )
+
+    return list(chain.from_iterable(knitout))
 
 
 def knit(direction: CarrierDirection, needle: Needle, carrier: int) -> KnitOut:
@@ -148,10 +179,23 @@ def knit(direction: CarrierDirection, needle: Needle, carrier: int) -> KnitOut:
 def knit_needles(
     direction: CarrierDirection, needles: NeedleList, carrier: int
 ) -> KnitOut:
-    return KnitOut(
+    knitout = KnitOut(
         knit(needle=n, direction=direction, carrier=carrier)
         for n in needles.sorted(direction)
     )
+
+    return list(chain.from_iterable(knitout))
+
+
+def knit_rows(
+    direction: CarrierDirection, needles: NeedleList, carrier: int, height: int
+) -> KnitOut:
+    knitout = KnitOut()
+    for row in range(height):
+        knitout += knit_needles(direction=direction, needles=needles, carrier=carrier)
+        direction = direction.opposite()
+
+    return knitout
 
 
 def miss(direction: CarrierDirection, needle: Needle, carrier: int) -> KnitOut:
@@ -161,12 +205,62 @@ def miss(direction: CarrierDirection, needle: Needle, carrier: int) -> KnitOut:
 def miss_needles(
     direction: CarrierDirection, needles: NeedleList, carrier: int
 ) -> KnitOut:
-    return KnitOut(
+    knitout = KnitOut(
         miss(needle=n, direction=direction, carrier=carrier)
         for n in needles.sorted(direction)
     )
 
+    return list(chain.from_iterable(knitout))
 
-knitout = header()
+
+def backwards_loop_cast_on(
+    needles: NeedleList, direction: CarrierDirection, carrier: Carrier
+) -> KnitOut:
+
+    inh = inhook(carrier)
+
+    return (
+        inhook(carrier)
+        + backwards_tuck_needles(direction, needles, carrier)
+        + releasehook(carrier)
+        + knit_needles(direction=direction.opposite(), needles=needles, carrier=carrier)
+    )
+
+
+def rack(racking: float) -> KnitOut:
+    return KnitOut([f"rack {racking}"])
+
+
+def xfer(
+    starting_needle: Needle, ending_needle: Needle, do_rack: bool = True
+) -> KnitOut:
+
+    # TODO: make sure the racking for the xfers is correct, even when transfering from back to front. I'm pretty sure it gets weird because you only ever move the front bed? maybe not, but check
+
+    knitout = KnitOut()
+    if do_rack:
+        gap = int(ending_needle) - int(starting_needle)
+        knitout += rack(gap)
+
+    knitout += KnitOut([f"xfer {starting_needle} {ending_needle}"])
+
+    if do_rack:
+        knitout += rack(0)
+
+    return knitout
+
+
+needles = NeedleList(Needle(i, KnittingMachineBed.FRONT) for i in range(390, 420))
+
+knitout = (
+    header()
+    + backwards_loop_cast_on(
+        needles=needles, direction=CarrierDirection.LEFT, carrier=Carrier(3)
+    )
+    + knit_rows(
+        direction=CarrierDirection.LEFT, needles=needles, carrier=Carrier(3), height=30
+    )
+)
+
 
 output(knitout_filename, knitout)
