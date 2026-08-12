@@ -70,10 +70,13 @@ class NeedleList:
         return str([str(i) for i in self.needles])
 
     def __getitem__(self, index: int | slice) -> Needle:
-        if isinstance(index, slice):
-            return NeedleList(self.needles[index])
-
-        return self.needles[index]
+        match index:
+            case slice():
+                return NeedleList(self.needles[index])
+            case int():
+                return self.needles[index]
+            case _:
+                raise ValueError(f"expected slice | int, got {type(index)}")
 
     def sorted(self, direction: CarrierDirection):
         sorted_needles = sorted(self.needles)
@@ -257,7 +260,7 @@ def xfer(
 
 needles = NeedleList(Needle(i, KnittingMachineBed.FRONT) for i in range(390, 420))
 
-""" knitout = (
+knitout = (
     header()
     + backwards_loop_cast_on(
         needles=needles, direction=CarrierDirection.LEFT, carrier=Carrier(3)
@@ -265,10 +268,6 @@ needles = NeedleList(Needle(i, KnittingMachineBed.FRONT) for i in range(390, 420
     + knit_rows(
         direction=CarrierDirection.LEFT, needles=needles, carrier=Carrier(3), height=30
     )
-) """
-
-knitout = header() + backwards_loop_cast_on(
-    needles=needles, direction=CarrierDirection.LEFT, carrier=Carrier(3)
 )
 
 output(knitout_filename, knitout)
