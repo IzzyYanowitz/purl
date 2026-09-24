@@ -150,29 +150,21 @@ def chain_bind_off(
     return knitout
 
 
-needles = NeedleList(Needle(i, KnittingMachineBed.FRONT) for i in range(390, 420))
-
-knitout = (
-    header()
-    + backwards_loop_cast_on(
-        needles=needles, direction=CarrierDirection.LEFT, carrier=Carrier(3)
-    )
-    + knit_rows(
-        direction=CarrierDirection.LEFT, needles=needles, carrier=Carrier(3), height=30
-    )
-    + chain_bind_off(
-        needles=needles, direction=CarrierDirection.LEFT, carrier=Carrier(3)
-    )
-)
-
-
 # TODO: there's a decorator to decalre an abstract class (or interface), use it
 class AbstractPurlProgram:
     def __init__(
         self,
         output_filename: str,
+        starting_needle: int,
+        ending_needle: int,
     ):
         self.output_filename = output_filename
+        self.starting_needle = starting_needle
+        self.ending_needle = ending_needle
+        self.cast_on_needles = NeedleList(
+            Needle(i, KnittingMachineBed.FRONT)
+            for i in range(self.starting_needle, self.ending_needle)
+        )
 
     def output(self, lines: KnitOut) -> str:
         program = "\n".join(lines) + "\n"
@@ -191,9 +183,30 @@ class AbstractPurlProgram:
 
 class StockinetteSquare(AbstractPurlProgram):
     def run(self) -> KnitOut:
+        needles = self.cast_on_needles
+        knitout = (
+            header()
+            + backwards_loop_cast_on(
+                needles=needles,
+                direction=CarrierDirection.LEFT,
+                carrier=Carrier(3),
+            )
+            + knit_rows(
+                direction=CarrierDirection.LEFT,
+                needles=needles,
+                carrier=Carrier(3),
+                height=30,
+            )
+            + chain_bind_off(
+                needles=needles, direction=CarrierDirection.LEFT, carrier=Carrier(3)
+            )
+        )
+
         return knitout
 
 
+# you can invoke this and test it via...
+# ./purl_test.py new_output.k &&  cmp new_output.k expected_output.k && echo "new_output matches expected output. woo hoo\!"
 if True or __name__ == "main":
     try:
         filename = sys.argv[1]
@@ -201,5 +214,7 @@ if True or __name__ == "main":
         print(f"usage: {sys.argv[0]} output_filename")
         exit(1)
 
-    ss = StockinetteSquare(output_filename=filename)
+    ss = StockinetteSquare(
+        output_filename=filename, starting_needle=390, ending_needle=420
+    )
     ss.compile()
