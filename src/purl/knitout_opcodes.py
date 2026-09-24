@@ -21,6 +21,22 @@ def knit(direction: CarrierDirection, source_needle: Needle, carrier: int) -> Kn
     return KnitOut([f"knit {direction} {source_needle} {carrier}"])
 
 
+def split(
+    direction: CarrierDirection,
+    source_needle: Needle,
+    destination_needle: Needle,
+    carrier: int,
+) -> KnitOut:
+    """
+    #we will want to implement sanity checking, e.g.
+        if source_needle.bed == destination_needle.bed:
+        pass
+    but we haven't decided where that will live
+    """
+
+    return KnitOut(f"split {direction} {source_needle} {destination_needle} {carrier}")
+
+
 def miss(direction: CarrierDirection, source_needle: Needle, carrier: int) -> KnitOut:
     return KnitOut([f"miss {direction} {source_needle} {carrier}"])
 

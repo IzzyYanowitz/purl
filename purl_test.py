@@ -7,14 +7,6 @@ from itertools import chain
 from purl.knitout_opcodes import *
 from purl.utils import *
 
-try:
-    filename = sys.argv[1]
-except:
-    print(f"usage: {sys.argv[0]} file-to-compile")
-    exit(1)
-
-knitout_filename = filename + ".k"
-
 carriers = [Carrier(i) for i in range(1, 11)]
 
 
@@ -34,12 +26,6 @@ def header(
         f";;Width: {width}",
         f";;Position: {justify_position}",
     ]
-
-
-def output(knitout_filename: str, lines: KnitOut) -> None:
-    with open(knitout_filename, "w") as file:
-        file.write("\n".join(lines))
-        file.write("\n")
 
 
 """
@@ -179,4 +165,41 @@ knitout = (
     )
 )
 
-output(knitout_filename, knitout)
+
+# TODO: there's a decorator to decalre an abstract class (or interface), use it
+class AbstractPurlProgram:
+    def __init__(
+        self,
+        output_filename: str,
+    ):
+        self.output_filename = output_filename
+
+    def output(self, lines: KnitOut) -> str:
+        program = "\n".join(lines) + "\n"
+        with open(self.output_filename, "w") as file:
+            file.write(program)
+        return program
+
+    def compile(self) -> str:
+        """outputs a .k file"""
+        knit_out = self.run()
+        return self.output(knit_out)
+
+    def run() -> KnitOut:
+        raise "unimplemented, inherit and do that in your program"
+
+
+class StockinetteSquare(AbstractPurlProgram):
+    def run(self) -> KnitOut:
+        return knitout
+
+
+if True or __name__ == "main":
+    try:
+        filename = sys.argv[1]
+    except:
+        print(f"usage: {sys.argv[0]} output_filename")
+        exit(1)
+
+    ss = StockinetteSquare(output_filename=filename)
+    ss.compile()
