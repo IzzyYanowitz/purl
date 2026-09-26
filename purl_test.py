@@ -3,6 +3,7 @@
 
 import sys
 from itertools import chain
+from abc import ABC
 
 from purl.knitout_opcodes import *
 from purl.utils import *
@@ -133,7 +134,9 @@ def chain_bind_off(
 
 
 # TODO: there's a decorator to decalre an abstract class (or interface), use it
-class AbstractPurlProgram:
+
+
+class AbstractPurlProgram(ABC):
     def __init__(
         self,
         output_filename: str,
@@ -214,14 +217,12 @@ class StockinetteSquare(AbstractPurlProgram):
 
 # you can invoke this and test it via...
 # ./purl_test.py new_output.k &&  cmp new_output.k expected_output.k && echo "new_output matches expected output. woo hoo\!"
-if True or __name__ == "main":
-    try:
-        filename = sys.argv[1]
-    except:
-        print(f"usage: {sys.argv[0]} output_filename")
-        exit(1)
 
-    ss = StockinetteSquare(
-        output_filename=filename, starting_needle=390, ending_needle=420
-    )
-    ss.compile()
+try:
+    filename = sys.argv[1]
+except:
+    print(f"usage: {sys.argv[0]} output_filename")
+    exit(1)
+
+ss = StockinetteSquare(output_filename=filename, starting_needle=390, ending_needle=420)
+ss.compile()
