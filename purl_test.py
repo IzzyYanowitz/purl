@@ -7,25 +7,7 @@ from itertools import chain
 from purl.knitout_opcodes import *
 from purl.utils import *
 
-carriers = [Carrier(i) for i in range(1, 11)]
-
-
-def header(
-    knit_out_version: str = "knitout-2",
-    carriers: list[int] = carriers,
-    machine: str = "SWG091N2",
-    gauge: int = 13,
-    width: int = 450,
-    justify_position: str = "Keep",
-) -> KnitOut:
-    return [
-        f";!{knit_out_version}",
-        f";;Carriers: {' '.join(str(i) for i in carriers)}",
-        f";;Machine: {machine}",
-        f";;Gauge: {gauge}",
-        f";;Width: {width}",
-        f";;Position: {justify_position}",
-    ]
+# IZZY TODO: move carriers and header into AbstractPurlProgram
 
 
 """
@@ -157,14 +139,39 @@ class AbstractPurlProgram:
         output_filename: str,
         starting_needle: int,
         ending_needle: int,
+        knitout_version: str = "knitout-2",
+        machine_name: str = "SWG091N2",
+        gauge: int = 13,
+        width: int = 450,
+        justify_position: str = "Keep",
     ):
+        # program settings
         self.output_filename = output_filename
         self.starting_needle = starting_needle
         self.ending_needle = ending_needle
+
         self.cast_on_needles = NeedleList(
             Needle(i, KnittingMachineBed.FRONT)
             for i in range(self.starting_needle, self.ending_needle)
         )
+
+        # machine settings
+        self.carriers = [Carrier(i) for i in range(1, 11)]
+        self.knitout_version = knitout_version
+        self.machine_name = machine_name
+        self.gauge = gauge
+        self.width = width
+        self.justify_position = justify_position
+
+    def header(self) -> KnitOut:
+        return [
+            f";!{self.knitout_version}",
+            f";;Carriers: {' '.join(str(i) for i in self.carriers)}",
+            f";;Machine: {self.machine_name}",
+            f";;Gauge: {self.gauge}",
+            f";;Width: {self.width}",
+            f";;Position: {self.justify_position}",
+        ]
 
     def output(self, lines: KnitOut) -> str:
         program = "\n".join(lines) + "\n"
@@ -185,7 +192,7 @@ class StockinetteSquare(AbstractPurlProgram):
     def run(self) -> KnitOut:
         needles = self.cast_on_needles
         knitout = (
-            header()
+            self.header()
             + backwards_loop_cast_on(
                 needles=needles,
                 direction=CarrierDirection.LEFT,
