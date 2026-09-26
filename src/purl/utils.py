@@ -53,6 +53,9 @@ class Needle:
         return Needle(index=self.index + offset, bed=self.bed.opposite)
 
 
+Loop: TypeAlias = Needle
+
+
 class NeedleList:
     def __init__(self, needles: list[Needle]):
         self.needles = list(needles)
