@@ -185,14 +185,11 @@ class Loops:
         calculates the required racking for a given shift then returns the cooresponding knitout
         its slightly weird because only the back bed actually moves
         """
-        knitout = []
-        if offset:
-            sign = 1
-            if source_bed == KnittingMachineBed.FRONT:
-                sign = -1
-            knitout += rack(sign * offset)
+        sign = 1
+        if source_bed == KnittingMachineBed.FRONT:
+            sign = -1
 
-        return knitout
+        return rack(sign * offset)
 
     @clean_loops
     @needs_loops
@@ -220,14 +217,18 @@ class Loops:
         self.assert_same_bed()
         source_bed = self.loops[0].needle.bed
 
-        output = self.rack(offset, source_bed)
+        output = []
+
+        if offset:
+            output += self.rack(offset, source_bed)
 
         destination_needles = self.opposite(offset)
 
         for i, l in enumerate(self.loops):
             output += l.xfer(destination_needles[i])
 
-        output += self.rack(0, source_bed)
+        if offset:
+            output += self.rack(0, source_bed)
 
         return output
 
@@ -243,8 +244,5 @@ if __name__ == "__main__":
     print(ls.tuck(CarrierDirection.LEFT, 4))
     print(ls.miss(CarrierDirection.LEFT, 4))
 
-    # XFER ISN"T WORKING
-    print(ls.xfer(2))
-    print(ls)
     # l1 = Loop(Needle(20, KnittingMachineBed.FRONT))
     # l2 = Needle(22, KnittingMachineBed.BACK)
