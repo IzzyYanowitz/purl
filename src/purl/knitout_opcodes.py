@@ -28,13 +28,15 @@ def split(
     carrier: int,
 ) -> KnitOut:
     """
-    #we will want to implement sanity checking, e.g.
+    we will want to implement sanity checking, e.g.
         if source_needle.bed == destination_needle.bed:
         pass
     but we haven't decided where that will live
     """
 
-    return KnitOut(f"split {direction} {source_needle} {destination_needle} {carrier}")
+    return KnitOut(
+        [f"split {direction} {source_needle} {destination_needle} {carrier}"]
+    )
 
 
 def miss(direction: CarrierDirection, source_needle: Needle, carrier: int) -> KnitOut:

@@ -3,6 +3,8 @@
 
 import sys
 from itertools import chain
+from functools import wraps
+import inspect
 from abc import ABC
 
 from purl.knitout_opcodes import *
@@ -191,6 +193,82 @@ class AbstractPurlProgram(ABC):
         raise "unimplemented, inherit and do that in your program"
 
 
+def clean_loops(func):
+    @wraps(func)
+    def wrapper(self: Loops, *args, **kwargs):
+        seen_needles = set()
+        safe_loops = []
+        for i, l in enumerate(self.loops):
+            if l.needle not in seen_needles:
+                safe_loops.append(l.needle)
+                seen_needles.add(l.needle)
+
+        self.loops = safe_loops
+
+
+def moves_loop(func):
+    signature = inspect.signature(func)
+
+    @wraps(func)
+    def wrapper(self, *args, **kwargs):
+        ko = func(self, *args, **kwargs)
+
+        # Figure out which argument was destination_needle
+        bound = signature.bind(self, *args, **kwargs)
+        destination_needle = bound.arguments["destination_needle"]
+
+        self.needle = destination_needle
+        return ko
+
+    return wrapper
+
+
+class Loop:
+    def __init__(self, needle: Needle):
+        self.needle = needle
+
+    def __repr__(self):
+        return f"Loop({str(self.needle)})"
+
+    def __str__(self):
+        return f"Loop({str(self.needle)})"
+
+    def knit(self, direction: CarrierDirection, carrier: int):
+        return knit(direction=direction, source_needle=self.needle, carrier=carrier)
+
+    def tuck(self, direction: CarrierDirection, carrier: int):
+        return tuck(direction=direction, source_needle=self.needle, carrier=carrier)
+
+    def miss(self, direction: CarrierDirection, carrier: int):
+        return miss(direction=direction, source_needle=self.needle, carrier=carrier)
+
+    @moves_loop
+    def split(
+        self, direction: CarrierDirection, carrier: int, destination_needle: Needle
+    ):
+        """by convention, split moves the old loop and creates a new one in its place"""
+        return split(
+            direction=direction,
+            source_needle=self.needle,
+            destination_needle=destination_needle,
+            carrier=carrier,
+        )
+
+    @moves_loop
+    def xfer(self, destination_needle: Needle):
+        return xfer(source_needle=self.needle, destination_needle=destination_needle)
+
+
+class Loops:
+
+    def __init__(self, loops: list[Loop] = []):
+        self.loops = loops
+
+    @clean_loops
+    def knit(self, direction: CarrierDirection, carrier: int):
+        pass
+
+
 class StockinetteSquare(AbstractPurlProgram):
     def run(self) -> KnitOut:
         needles = self.cast_on_needles
@@ -217,7 +295,7 @@ class StockinetteSquare(AbstractPurlProgram):
 
 # you can invoke this and test it via...
 # ./purl_test.py new_output.k &&  cmp new_output.k expected_output.k && echo "new_output matches expected output. woo hoo\!"
-
+""" 
 try:
     filename = sys.argv[1]
 except:
@@ -226,3 +304,4 @@ except:
 
 ss = StockinetteSquare(output_filename=filename, starting_needle=390, ending_needle=420)
 ss.compile()
+ """

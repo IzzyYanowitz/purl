@@ -48,12 +48,15 @@ class Needle:
     def __int__(self):
         return self.index
 
+    def __hash__(self):
+        if self.bed == KnittingMachineBed.FRONT:
+            return 2 * self.index
+        else:
+            return 2 * self.index + 1
+
     def opposite(self, offset: int = 0):
         # TODO: surface to user boundary violations (i.e., invalid indexes for that machine)
         return Needle(index=self.index + offset, bed=self.bed.opposite)
-
-
-Loop: TypeAlias = Needle
 
 
 class NeedleList:
