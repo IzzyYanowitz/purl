@@ -4,8 +4,8 @@ from functools import wraps
 from abc import ABC
 import inspect
 
-from purl.knitout_opcodes import *
-from purl.utils import *
+from .utils import Needle, CarrierDirection, KnitOut, KnittingMachineBed, NeedleList
+from .knitout_opcodes import knit, tuck, miss, split, xfer, rack
 
 
 def moves_loop(func):
@@ -66,15 +66,12 @@ class Loop:
         """
         return miss(direction=direction, source_needle=self.needle, carrier=carrier)
 
-    @moves_loop
     def split(
         self, direction: CarrierDirection, carrier: int, destination_needle: Needle
     ) -> KnitOut:
         """
-        TODO: Figure out how exactly split creates new loops...
         returns the knitout for splitting this loop
-        moves the loop to destination_needle
-
+        DOES NOT move the loop to destination_needle
         """
 
         return split(
@@ -232,7 +229,33 @@ class Loops:
 
         return output
 
-    # Before you write split, consider what you were talking about with Yuki
+    @clean_loops
+    @needs_loops
+    def split(
+        self, direction: CarrierDirection, carrier: int, offset: int = 0
+    ) -> KnitOut:
+        """
+        returns the knitout for splitting a list of loops with optional offset
+        by convention, split doesn't move the loops, but creates new ones that can be requested from the purl program
+        all loops must be on the same bed
+        """
+        self.assert_same_bed()
+        source_bed = self.loops[0].needle.bed
+
+        output = []
+
+        if offset:
+            output += self.rack(offset, source_bed)
+
+        destination_needles = self.opposite(offset)
+
+        for i, l in enumerate(self.loops):
+            output += l.split(direction, carrier, destination_needles[i])
+
+        if offset:
+            output += self.rack(0, source_bed)
+
+        return output
 
 
 if __name__ == "__main__":
@@ -243,6 +266,9 @@ if __name__ == "__main__":
     print(ls.knit(CarrierDirection.LEFT, 4))
     print(ls.tuck(CarrierDirection.LEFT, 4))
     print(ls.miss(CarrierDirection.LEFT, 4))
+    print(ls.xfer(3))
+
+    print(ls.split(CarrierDirection.RIGHT, 4, 1))
 
     # l1 = Loop(Needle(20, KnittingMachineBed.FRONT))
     # l2 = Needle(22, KnittingMachineBed.BACK)
