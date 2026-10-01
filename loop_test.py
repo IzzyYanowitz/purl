@@ -39,21 +39,27 @@ class Loop:
     def __str__(self):
         return f"Loop({str(self.needle)})"
 
-    def knit(self, direction: CarrierDirection, carrier: int):
+    def opposite(self, offset: int) -> Needle:
+        """
+        returns the needle opposite this loop with optional offset
+        """
+        return self.needle.opposite(offset)
+
+    def knit(self, direction: CarrierDirection, carrier: int) -> KnitOut:
         """
         returns the knitout for knitting this loop
         """
 
         return knit(direction=direction, source_needle=self.needle, carrier=carrier)
 
-    def tuck(self, direction: CarrierDirection, carrier: int):
+    def tuck(self, direction: CarrierDirection, carrier: int) -> KnitOut:
         """
         returns the knitout for tucking this loop
         """
 
         return tuck(direction=direction, source_needle=self.needle, carrier=carrier)
 
-    def miss(self, direction: CarrierDirection, carrier: int):
+    def miss(self, direction: CarrierDirection, carrier: int) -> KnitOut:
         """
         returns the knitout for missing this loop
         """
@@ -62,7 +68,7 @@ class Loop:
     @moves_loop
     def split(
         self, direction: CarrierDirection, carrier: int, destination_needle: Needle
-    ):
+    ) -> KnitOut:
         """
         TODO: Figure out how exactly split creates new loops...
         returns the knitout for splitting this loop
@@ -78,7 +84,7 @@ class Loop:
         )
 
     @moves_loop
-    def xfer(self, destination_needle: Needle):
+    def xfer(self, destination_needle: Needle) -> KnitOut:
         """
         returns the knitout for xfering this loop
         moves the loop to destination_needle
@@ -105,6 +111,19 @@ def clean_loops(func):
     return wrapper
 
 
+def needs_loops(func):
+    """checks if Loops object has loops
+    throws an error if not"""
+
+    @wraps(func)
+    def wrapper(self, *args, **kwargs):
+
+        self.assert_has_loops()
+        return func(self, *args, **kwargs)
+
+    return wrapper
+
+
 class Loops:
 
     def __init__(self, loops: list[Loop] = []):
@@ -116,7 +135,21 @@ class Loops:
     def __str__(self):
         return "[%s]" % ", ".join([str(l) for l in self.loops])
 
+    def assert_same_bed(self) -> bool:
+        if len({loop.needle.bed for loop in self.loops}) == 1:
+            return True
+        raise ValueError(f"expected all needles to belong to same bed")
+
+    def assert_has_loops(self) -> bool:
+        if len(self.loops) > 0:
+            return True
+
+        raise ValueError(
+            f"asked to operate on an empty list of needles, you probably don't want that"
+        )
+
     @clean_loops
+    @needs_loops
     def knit(self, direction: CarrierDirection, carrier: int) -> KnitOut:
         """returns the knitout for knitting a list of loops"""
         output = []
@@ -126,6 +159,7 @@ class Loops:
         return output
 
     @clean_loops
+    @needs_loops
     def tuck(self, direction: CarrierDirection, carrier: int) -> KnitOut:
         """returns the knitout for tucking a list of loops"""
         output = []
@@ -135,6 +169,7 @@ class Loops:
         return output
 
     @clean_loops
+    @needs_loops
     def miss(self, direction: CarrierDirection, carrier: int) -> KnitOut:
         """returns the knitout for missing a list of loops"""
         output = []
@@ -143,7 +178,7 @@ class Loops:
 
         return output
 
-    def rack(self, offset: int, source_bed) -> KnitOut:
+    def rack(self, offset: int, source_bed: KnittingMachineBed) -> KnitOut:
         """
         calculates the required racking for a given shift then returns the cooresponding knitout
         its slightly weird because only the back bed actually moves
@@ -158,19 +193,56 @@ class Loops:
         return knitout
 
     @clean_loops
+    @needs_loops
+    def opposite(self, offset: int = 0) -> NeedleList:
+        """
+        returns the cooresponding needles on the opposite bed with an optional offset
+        negative is left, positive is right.
+        """
+
+        opposite_needles = []
+
+        for l in self.loops:
+            opposite_needles.append(l.opposite(offset))
+
+        return opposite_needles
+
+    @clean_loops
+    @needs_loops
     def xfer(self, offset: int = 0) -> KnitOut:
         """
         returns the knitout for xfering a list of loops with optional offset
-        all loops must be on the same side of the bed
+        all loops must be on the same  bed
         """
-        output = []
+
+        self.assert_same_bed()
+        source_bed = self.loops[0].needle.bed
+
+        output = self.rack(offset, source_bed)
+
+        destination_needles = self.opposite(offset)
+
+        for i, l in enumerate(self.loops):
+            output += l.xfer(destination_needles[i])
+
+        output += self.rack(0, source_bed)
+
+        return output
 
     # Before you write split, consider what you were talking about with Yuki
 
 
 if __name__ == "__main__":
-    ls = Loops([Loop(Needle(i, "f")) for i in range(10, 15)] + [Loop(Needle(10, "f"))])
+    ls = Loops(
+        [Loop(Needle(i, KnittingMachineBed.FRONT)) for i in range(10, 15)]
+        + [Loop(Needle(10, KnittingMachineBed.FRONT))]
+    )
     print(ls.knit(CarrierDirection.LEFT, 4))
     print(ls.tuck(CarrierDirection.LEFT, 4))
     print(ls.miss(CarrierDirection.LEFT, 4))
-    print(ls.xfer)
+
+    # XFER ISN"T WORKING
+    print(ls.xfer(2))
+    # print(ls)
+    # l1 = Loop(Needle(20, KnittingMachineBed.FRONT))
+    # l2 = Needle(22, KnittingMachineBed.BACK)
