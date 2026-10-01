@@ -43,6 +43,7 @@ class Loop:
         """
         returns the needle opposite this loop with optional offset
         """
+
         return self.needle.opposite(offset)
 
     def knit(self, direction: CarrierDirection, carrier: int) -> KnitOut:
@@ -89,6 +90,7 @@ class Loop:
         returns the knitout for xfering this loop
         moves the loop to destination_needle
         """
+
         return xfer(source_needle=self.needle, destination_needle=destination_needle)
 
 
@@ -243,6 +245,6 @@ if __name__ == "__main__":
 
     # XFER ISN"T WORKING
     print(ls.xfer(2))
-    # print(ls)
+    print(ls)
     # l1 = Loop(Needle(20, KnittingMachineBed.FRONT))
     # l2 = Needle(22, KnittingMachineBed.BACK)

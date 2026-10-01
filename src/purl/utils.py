@@ -57,7 +57,7 @@ class Needle:
     def opposite(self, offset: int = 0):
         """returns cooresponding needle on opposite bed with optional offset"""
         # TODO: surface to user boundary violations (i.e., invalid indexes for that machine)
-        return Needle(index=self.index + offset, bed=self.bed.opposite)
+        return Needle(index=self.index + offset, bed=self.bed.opposite())
 
 
 class NeedleList:
