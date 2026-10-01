@@ -55,6 +55,7 @@ class Needle:
             return 2 * self.index + 1
 
     def opposite(self, offset: int = 0):
+        """returns cooresponding needle on opposite bed with optional offset"""
         # TODO: surface to user boundary violations (i.e., invalid indexes for that machine)
         return Needle(index=self.index + offset, bed=self.bed.opposite)
 
@@ -92,6 +93,13 @@ class NeedleList:
         )
 
     def sorted(self, direction: CarrierDirection):
+        """
+        sorts needles by index
+        Ex:
+        [f26, f25, b26, b25].sorted(CarrierDirection.LEFT) = [b26, f26, b25, f25]
+        [f26, f25, b26, b25].sorted(CarrierDirection.RIGHT) = [f25, b25, f26, b26]
+
+        """
         sorted_needles = sorted(self.needles)
 
         if direction == CarrierDirection.RIGHT:
@@ -101,6 +109,7 @@ class NeedleList:
 
     def opposite(self, offset: int = 0):
         """
+        returns n.opposite(offset) for each n in the needle list
         offset: int - how many needles over (negative shifts left, positive shifts right), defaults to 0
         """
 
