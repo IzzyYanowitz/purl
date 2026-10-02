@@ -1,4 +1,4 @@
-from .utils import KnitOut, NeedleList, CarrierDirection
+from .machine_types import KnitOut, NeedleList, CarrierDirection
 from .knitout_opcodes import inhook, outhook
 from .loops import Loops
 
