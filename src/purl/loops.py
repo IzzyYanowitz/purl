@@ -45,6 +45,9 @@ class Loop:
     def __str__(self):
         return f"Loop({str(self.needle)})"
 
+    def __int__(self):
+        return int(self.needle)
+
     def opposite(self, offset: int) -> Needle:
         """
         returns the needle opposite this loop with optional offset
@@ -111,7 +114,18 @@ def clean_loops(func):
 
         self.loops = safe_loops
 
-        return func(self, *args, **kwargs)
+        output = func(self, *args, **kwargs)
+
+        seen_needles = set()
+        safe_loops = []
+        for i, l in enumerate(self.loops):
+            if l.needle not in seen_needles:
+                safe_loops.append(l)
+                seen_needles.add(l.needle)
+
+        self.loops = safe_loops
+
+        return output
 
     return wrapper
 
@@ -139,6 +153,15 @@ class Loops:
 
     def __str__(self):
         return "[%s]" % ", ".join([str(l) for l in self.loops])
+
+    @clean_loops
+    def append(self, loop: Loop) -> None:
+        self.loops.append(loop)
+
+    @clean_loops
+    def join(self, loops) -> None:
+        for l in loops:
+            self.loops.append(l)
 
     def assert_same_bed(self) -> bool:
         if len({loop.needle.bed for loop in self.loops}) == 1:

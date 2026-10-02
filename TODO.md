@@ -13,7 +13,8 @@ request loops
   - [ ] abstract the exceptions in the various inhooking and outhooking functions
     - [ ] seriously though these functions are awful. I'm pretty sure Prof. Danner would kill you if he saw these
   - [ ] consider if should be able to outhook a carrier that was never inhooked
-  
+
+  - [ ] fix all the error messages but specifically the cannot infer carrier direction one. make them good instead of bad is my adivce  
 
 # dumping program
 - [ ] dump all ideas into here and organize them

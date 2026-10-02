@@ -267,12 +267,7 @@ class Pattern(ABC):
         sets the active carrier and inhooks if neccesary
         carriers on our machine can be 1 to 10
         """
-        if carrier_index > len(self.all_carriers) or carrier_index <= 0:
-            raise Exception(
-                f"Tried to activate carrier {carrier_index}, but allowed carrier indices are 1 to 10 inclusive"
-            )
-
-        carrier = self.all_carriers[carrier_index - 1]
+        carrier = self.get_carrier(carrier_index)
 
         if carrier not in self.inhooked_carriers:
             self.activate_carrier(carrier)
@@ -280,6 +275,85 @@ class Pattern(ABC):
         self.active_carrier = carrier
 
         return carrier
+
+    def get_carrier(self, carrier_index: int) -> Carrier:
+        """
+        returns the carrier matching the index
+        indices must be 1-10 inclusive
+        """
+
+        if carrier_index > len(self.all_carriers) or carrier_index <= 0:
+            raise Exception(
+                f"Tried to activate carrier {carrier_index}, but allowed carrier indices are 1 to 10 inclusive"
+            )
+
+        carrier = self.all_carriers[carrier_index - 1]
+
+        return carrier
+
+    def make_loops(self, needles: NeedleList) -> Loops:
+        """
+        adds any needles not already in self.all_loops then returns a list of loops on needles
+        """
+
+        output_loops = Loops()
+        for n in needles:
+            a_loop = Loop(n)
+
+            self.all_loops.append(a_loop)
+            if n.bed == KnittingMachineBed.FRONT:
+                self.front_loops.append(a_loop)
+            else:
+                self.back_loops.append(a_loop)
+
+            output_loops.append(a_loop)
+
+        return output_loops
+
+    def twisted_cast_on(
+        self,
+        needles: NeedleList,
+        carrier_index: int = None,
+        direction: CarrierDirection = None,
+    ) -> Loops:
+        """
+        casts on needles using the twisted cast on and writes the knitout
+        carrier and direction are optional, kind ofs
+        """
+        output = KnitOut()
+
+        if carrier_index == None:
+            carrier = self.active_carrier
+            carrier_index = int(carrier)
+        elif type(carrier_index) == int:
+            carrier = self.get_carrier(carrier_index)
+        else:
+            raise TypeError(
+                f"carrier_index must be int or None not {type(carrier_index)}"
+            )
+
+        if direction == None:
+            direction = carrier.infer_direction(needles)
+
+        needles = needles.sorted(direction)
+        first = needles[0]
+        opp_direct = direction.opposite()
+
+        if first.bed == KnittingMachineBed.BACK:
+            output += tuck(direction, first.opposite(), carrier_index)
+            output += tuck(opp_direct, first, carrier_index)
+        else:
+            output += tuck(direction, first, carrier_index)
+
+        for n in needles[1:]:
+            output += tuck(opp_direct, n, carrier_index)
+
+        carrier.set_position(needles[-1].index)
+
+        self.knitout += output
+        loops = self.make_loops(needles)
+
+        return loops
 
     def output(self, lines: KnitOut) -> str:
         program = "\n".join(lines) + "\n"
@@ -289,6 +363,7 @@ class Pattern(ABC):
 
     def compile(self) -> str:
         """outputs a .k file"""
+        self.header()
         self.run()
         return self.output(self.knitout)
 
@@ -322,7 +397,9 @@ class StockinetteSquare(Pattern):
 
 class Test(Pattern):
     def run(self) -> KnitOut:
-        print("hello world")
+        self.set_active_carrier(1)
+        my_loops = self.twisted_cast_on(self.front_needles[-30:])
+        self.releasehook()
 
 
 """
@@ -353,5 +430,5 @@ ss = StockinetteSquare(output_filename=filename, starting_needle=390, ending_nee
 ss.compile()
  """
 if __name__ == "__main__":
-    test1 = Test("foo")
-    test1.run()
+    test1 = Test("test.txt")
+    test1.compile()
