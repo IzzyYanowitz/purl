@@ -21,7 +21,8 @@ request loops
   - [ ] fix all the error messages but specifically the cannot infer carrier direction one. make them good instead of bad is my adivce  
 
   - [ ] all these functions returning knitout makes no sense
-  - [ ] 
+  - [ ] LOOPS NEEDS TO BE CLEANED MORE OFTEN
+  - [ ] cast on function seems right, but knits up weirdly. Not sure if the issue is the machine or the code.
 # dumping program
 - [ ] dump all ideas into here and organize them
 

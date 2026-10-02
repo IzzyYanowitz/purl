@@ -14,6 +14,11 @@ class CarrierDirection(StrEnum):
             return CarrierDirection.RIGHT
         return CarrierDirection.LEFT
 
+    def __int__(self):
+        if self == CarrierDirection.LEFT:
+            return -1
+        return 1
+
 
 class KnittingMachineBed(StrEnum):
     FRONT = "f"

@@ -155,9 +155,11 @@ class Loops:
     def __init__(self, loops: list[Loop] = []):
         self.loops = loops
 
+    @clean_loops
     def __repr__(self):
         return "[%s]" % ", ".join([str(l) for l in self.loops])
 
+    @clean_loops
     def __str__(self):
         return "[%s]" % ", ".join([str(l) for l in self.loops])
 
@@ -180,11 +182,15 @@ class Loops:
         return False
 
     @clean_loops
+    def clean(self):
+        return
+
+    @clean_loops
     def sorted(self, direction: CarrierDirection):
         ls = sorted(self.loops)
         if direction == CarrierDirection.RIGHT:
-            return ls
-        return ls[::-1]
+            return Loops(ls)
+        return Loops(ls[::-1])
 
     @clean_loops
     def len(self):

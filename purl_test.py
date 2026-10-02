@@ -236,6 +236,162 @@ class Pattern(ABC):
 
         return output_loops
 
+    def knit(
+        self,
+        loops: Loops,
+        carrier_index: int = None,
+        direction: CarrierDirection = None,
+    ) -> KnitOut:
+        """
+        writes the knitout for knitting the specified loops
+        """
+
+        if carrier_index == None:
+            carrier = self.active_carrier
+            carrier_index = int(carrier)
+        elif type(carrier_index) == int:
+            carrier = self.get_carrier(carrier_index)
+        elif type(carrier_index) == Carrier:
+            carrier = carrier_index
+            carrier_index = int(carrier)
+        else:
+            raise TypeError(
+                f"carrier_index must be int or None not {type(carrier_index)}"
+            )
+
+        if direction == None:
+            direction = carrier.infer_direction(loops)
+
+        loops.clean()
+
+        output = loops.knit(direction, carrier_index)
+
+        self.knitout += output
+
+        carrier.move(direction, loops)
+
+        return output
+
+    def tuck(
+        self,
+        loops: Loops,
+        carrier_index: int = None,
+        direction: CarrierDirection = None,
+    ) -> KnitOut:
+        """
+        writes the knitout for tucking the specified loops
+        """
+
+        if carrier_index == None:
+            carrier = self.active_carrier
+            carrier_index = int(carrier)
+        elif type(carrier_index) == int:
+            carrier = self.get_carrier(carrier_index)
+        elif type(carrier_index) == Carrier:
+            carrier = carrier_index
+            carrier_index = int(carrier)
+        else:
+            raise TypeError(
+                f"carrier_index must be int or None not {type(carrier_index)}"
+            )
+
+        if direction == None:
+            direction = carrier.infer_direction(loops)
+
+        loops.clean()
+
+        output = loops.tuck(direction, carrier_index)
+
+        self.knitout += output
+
+        carrier.move(direction, loops)
+
+        return output
+
+    def miss(
+        self,
+        loops: Loops,
+        carrier_index: int = None,
+        direction: CarrierDirection = None,
+    ) -> KnitOut:
+        """
+        writes the knitout for missing the specified loops
+        """
+
+        if carrier_index == None:
+            carrier = self.active_carrier
+            carrier_index = int(carrier)
+        elif type(carrier_index) == int:
+            carrier = self.get_carrier(carrier_index)
+        elif type(carrier_index) == Carrier:
+            carrier = carrier_index
+            carrier_index = int(carrier)
+        else:
+            raise TypeError(
+                f"carrier_index must be int or None not {type(carrier_index)}"
+            )
+
+        if direction == None:
+            direction = carrier.infer_direction(loops)
+
+        loops.clean()
+
+        output = loops.miss(direction, carrier_index)
+
+        self.knitout += output
+
+        carrier.move(direction, loops)
+
+        return output
+
+    def split(
+        self,
+        loops: Loops,
+        offset: int = 0,
+        carrier_index: int = None,
+        direction: CarrierDirection = None,
+    ) -> Loops:
+
+        if carrier_index == None:
+            carrier = self.active_carrier
+            carrier_index = int(carrier)
+        elif type(carrier_index) == int:
+            carrier = self.get_carrier(carrier_index)
+        elif type(carrier_index) == Carrier:
+            carrier = carrier_index
+            carrier_index = int(carrier)
+        else:
+            raise TypeError(
+                f"carrier_index must be int or None not {type(carrier_index)}"
+            )
+
+        if direction == None:
+            direction = carrier.infer_direction(loops)
+
+        loops.clean()
+
+        output = loops.split(direction, carrier, offset)
+        self.knitout += output
+        carrier.move(direction, loops)
+
+        new_loop_locations = NeedleList([l.needle.opposite(offset) for l in loops])
+        new_loops = self.make_loops(new_loop_locations)
+
+        return new_loops
+
+    def xfer(self, loops: Loops, offset: int = 0) -> KnitOut:
+        """
+        writes the knitscript for xfering loops with optional offset
+        positive offset is right, negative is left
+        all loops must be on the same bed
+        """
+
+        output = loops.xfer(offset)
+
+        self.knitout += output
+
+        return output
+
     def twisted_cast_on(
         self,
         needles: NeedleList,
@@ -253,6 +409,9 @@ class Pattern(ABC):
             carrier_index = int(carrier)
         elif type(carrier_index) == int:
             carrier = self.get_carrier(carrier_index)
+        elif type(carrier_index) == Carrier:
+            carrier = carrier_index
+            carrier_index = int(carrier)
         else:
             raise TypeError(
                 f"carrier_index must be int or None not {type(carrier_index)}"
@@ -281,14 +440,16 @@ class Pattern(ABC):
 
         return loops
 
-    def knit(
+    def chain_bind_off(
         self,
         loops: Loops,
+        do_hold: bool = True,
         carrier_index: int = None,
         direction: CarrierDirection = None,
-    ) -> KnitOut:
+    ) -> None:
         """
-        writes the knitout for knitting the specified loops
+        writes the knitout for binding off using the chain bind off
+        do_hold controlls if the loops are split or knit
         """
 
         if carrier_index == None:
@@ -296,6 +457,9 @@ class Pattern(ABC):
             carrier_index = int(carrier)
         elif type(carrier_index) == int:
             carrier = self.get_carrier(carrier_index)
+        elif type(carrier_index) == Carrier:
+            carrier = carrier_index
+            carrier_index = int(carrier)
         else:
             raise TypeError(
                 f"carrier_index must be int or None not {type(carrier_index)}"
@@ -304,118 +468,27 @@ class Pattern(ABC):
         if direction == None:
             direction = carrier.infer_direction(loops)
 
-        output = loops.knit(direction, carrier_index)
+        loops.clean()
 
-        self.knitout += output
+        loops = loops.sorted(direction)
 
-        carrier.move(direction, loops)
+        for _ in range(loops.len() - 1):
+            gap = int(loops[1]) - int(loops[0])
 
-        return output
+            l = loops[0:1]
 
-    def tuck(
-        self,
-        loops: Loops,
-        carrier_index: int = None,
-        direction: CarrierDirection = None,
-    ) -> KnitOut:
-        """
-        writes the knitout for tucking the specified loops
-        """
+            self.knit(l, carrier, direction)
 
-        if carrier_index == None:
-            carrier = self.active_carrier
-            carrier_index = int(carrier)
-        elif type(carrier_index) == int:
-            carrier = self.get_carrier(carrier_index)
-        else:
-            raise TypeError(
-                f"carrier_index must be int or None not {type(carrier_index)}"
-            )
+            if do_hold:
+                self.split(l, 0, carrier, direction)
 
-        if direction == None:
-            direction = carrier.infer_direction(loops)
+            self.xfer(l, gap)
 
-        output = loops.tuck(direction, carrier_index)
+            self.xfer(l)
 
-        self.knitout += output
+            loops.clean()
 
-        carrier.move(direction, loops)
-
-        return output
-
-    def miss(
-        self,
-        loops: Loops,
-        carrier_index: int = None,
-        direction: CarrierDirection = None,
-    ) -> KnitOut:
-        """
-        writes the knitout for missing the specified loops
-        """
-
-        if carrier_index == None:
-            carrier = self.active_carrier
-            carrier_index = int(carrier)
-        elif type(carrier_index) == int:
-            carrier = self.get_carrier(carrier_index)
-        else:
-            raise TypeError(
-                f"carrier_index must be int or None not {type(carrier_index)}"
-            )
-
-        if direction == None:
-            direction = carrier.infer_direction(loops)
-
-        output = loops.miss(direction, carrier_index)
-
-        self.knitout += output
-
-        carrier.move(direction, loops)
-
-        return output
-
-    def xfer(self, loops: Loops, offset: int = 0) -> KnitOut:
-        """
-        writes the knitscript for xfering loops with optional offset
-        positive offset is right, negative is left
-        all loops must be on the same bed
-        """
-
-        output = loops.xfer(offset)
-
-        self.knitout += output
-
-        return output
-
-    def split(
-        self,
-        loops: Loops,
-        offset: int = 0,
-        carrier_index: int = None,
-        direction: CarrierDirection = None,
-    ) -> Loops:
-
-        if carrier_index == None:
-            carrier = self.active_carrier
-            carrier_index = int(carrier)
-        elif type(carrier_index) == int:
-            carrier = self.get_carrier(carrier_index)
-        else:
-            raise TypeError(
-                f"carrier_index must be int or None not {type(carrier_index)}"
-            )
-
-        if direction == None:
-            direction = carrier.infer_direction(loops)
-
-        output = loops.split(direction, carrier, offset)
-        self.knitout += output
-        carrier.move(direction, loops)
-
-        new_loop_locations = NeedleList([l.needle.opposite(offset) for l in loops])
-        new_loops = self.make_loops(new_loop_locations)
-
-        return new_loops
+        self.knit(loops, carrier, direction)
 
     def output(self, lines: KnitOut) -> str:
         program = "\n".join(lines) + "\n"
@@ -423,10 +496,15 @@ class Pattern(ABC):
             file.write(program)
         return program
 
+    def cut_all_carriers(self) -> None:
+        for carr in list(self.inhooked_carriers):
+            self.cut(carr)
+
     def compile(self) -> str:
         """outputs a .k file"""
         self.header()
         self.run()
+        self.cut_all_carriers()
         return self.output(self.knitout)
 
     def run() -> KnitOut:
@@ -443,6 +521,8 @@ class Test(Pattern):
         self.releasehook()
         for i in range(31):
             self.knit(my_loops)
+
+        self.chain_bind_off(my_loops)
 
 
 # you can invoke this and test it via...
