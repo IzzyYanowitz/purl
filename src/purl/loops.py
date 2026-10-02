@@ -1,6 +1,6 @@
 import sys
 from itertools import chain
-from functools import wraps
+from functools import wraps, total_ordering
 from abc import ABC
 import inspect
 
@@ -35,6 +35,7 @@ def moves_loop(func):
     return wrapper
 
 
+@total_ordering
 class Loop:
     def __init__(self, needle: Needle):
         self.needle = needle
@@ -47,6 +48,12 @@ class Loop:
 
     def __int__(self):
         return int(self.needle)
+
+    def __eq__(self, other):
+        return self.needle == other.needle
+
+    def __lt__(self, other):
+        return self.needle < other.needle
 
     def opposite(self, offset: int) -> Needle:
         """
@@ -153,6 +160,29 @@ class Loops:
 
     def __str__(self):
         return "[%s]" % ", ".join([str(l) for l in self.loops])
+
+    def __getitem__(self, index: slice | int):
+        match index:
+            case slice():
+                return Loops(self.loops[index])
+            case int():
+                return self.loops[index]
+            case _:
+                raise ValueError(f"expected slice | int, got {type(index)}")
+
+    def __iter__(self):
+        return iter(self.loops)
+
+    @clean_loops
+    def sorted(self, direction: CarrierDirection):
+        ls = sorted(self.loops)
+        if direction == CarrierDirection.RIGHT:
+            return ls
+        return ls[::-1]
+
+    @clean_loops
+    def len(self):
+        return len(self.loops)
 
     @clean_loops
     def append(self, loop: Loop) -> None:

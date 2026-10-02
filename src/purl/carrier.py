@@ -14,10 +14,10 @@ class Carrier:
         return self.index
 
     def __repr__(self):
-        return f"c{self.index}"
+        return f"{self.index}"
 
     def __str__(self):
-        return f"c{self.index}"
+        return f"{self.index}"
 
     def inhook(self) -> KnitOut:
         self.inhooked = True
@@ -39,8 +39,10 @@ class Carrier:
         self.position = position
 
     def infer_direction(self, needles: Loops | NeedleList) -> CarrierDirection:
-
-        needle_ints = [int(n) for n in needles]
+        if type(needles) == Loops:
+            needle_ints = [int(l) for l in needles.loops]
+        else:
+            needle_ints = [int(n) for n in needles]
         left_most = min(needle_ints)
         right_most = max(needle_ints)
         error_margin = len(needle_ints) // 3

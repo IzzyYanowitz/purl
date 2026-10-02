@@ -12,130 +12,6 @@ from purl.utils import *
 from purl.loops import *
 from purl.carrier import *
 
-# IZZY TODO: move carriers and header into AbstractPurlProgram
-
-
-"""
-
-  58 rack
-  58 xfer
-
-"""
-
-
-def tuck_needles(
-    direction: CarrierDirection, needles: NeedleList, carrier: int
-) -> KnitOut:
-    knitout = KnitOut(
-        tuck(source_needle=n, direction=direction, carrier=carrier)
-        for n in needles.sorted(direction)
-    )
-
-    return list(chain.from_iterable(knitout))
-
-
-def backwards_tuck(
-    direction: CarrierDirection, source_needle: Needle, carrier: int
-) -> KnitOut:
-
-    return miss(
-        direction=direction, source_needle=source_needle, carrier=carrier
-    ) + tuck(
-        direction=direction.opposite(), source_needle=source_needle, carrier=carrier
-    )
-
-
-def backwards_tuck_needles(
-    direction: CarrierDirection, needles: NeedleList, carrier: int
-) -> KnitOut:
-    sorted_needles = needles.sorted(direction)
-    knitout = KnitOut(
-        backwards_tuck(source_needle=n, direction=direction, carrier=carrier)
-        for n in sorted_needles
-    )
-
-    return list(chain.from_iterable(knitout))
-
-
-def knit_needles(
-    direction: CarrierDirection, needles: NeedleList, carrier: int
-) -> KnitOut:
-    knitout = KnitOut(
-        knit(source_needle=n, direction=direction, carrier=carrier)
-        for n in needles.sorted(direction)
-    )
-
-    return list(chain.from_iterable(knitout))
-
-
-def knit_rows(
-    direction: CarrierDirection, needles: NeedleList, carrier: int, height: int
-) -> KnitOut:
-    knitout = KnitOut()
-    for row in range(height):
-        knitout += knit_needles(direction=direction, needles=needles, carrier=carrier)
-        direction = direction.opposite()
-
-    return knitout
-
-
-def miss_needles(
-    direction: CarrierDirection, needles: NeedleList, carrier: int
-) -> KnitOut:
-    knitout = KnitOut(
-        miss(source_needle=n, direction=direction, carrier=carrier)
-        for n in needles.sorted(direction)
-    )
-
-    return list(chain.from_iterable(knitout))
-
-
-def backwards_loop_cast_on(
-    needles: NeedleList, direction: CarrierDirection, carrier: Carrier
-) -> KnitOut:
-
-    return (
-        inhook(carrier)
-        + tuck(direction=direction, source_needle=needles[-1], carrier=carrier)
-        + backwards_tuck_needles(direction, needles[:-1], carrier)
-        + releasehook(carrier)
-        + knit_needles(direction=direction.opposite(), needles=needles, carrier=carrier)
-    )
-
-
-def xfer_needles(source_needles: NeedleList, offset: int) -> KnitOut:
-    knitout = KnitOut()
-
-    source_needles.assert_has_needles()
-    source_needles.assert_same_bed()
-
-    source_bed = source_needles[0].bed
-
-    # you can only shift the back bed, so to make it easier on the user, we
-    # calculate which direction based on source bed
-    if offset:
-        sign = 1
-        if source_bed == KnittingMachineBed.FRONT:
-            sign = -1
-        knitout += rack(sign * offset)
-
-    for n in source_needles:
-        knitout += xfer(n, n.opposite(offset))
-
-    if offset:
-        knitout += rack(0)
-
-    return knitout
-
-
-def chain_bind_off(
-    needles: NeedleList, direction: CarrierDirection, carrier: Carrier
-) -> KnitOut:
-    knitout = KnitOut()
-    sorted_needles = needles.sorted(direction)
-
-    return knitout
-
 
 class Pattern(ABC):
     def __init__(
@@ -355,6 +231,42 @@ class Pattern(ABC):
 
         return loops
 
+    def knit(
+        self,
+        loops: Loops,
+        carrier_index: int = None,
+        direction: CarrierDirection = None,
+    ) -> KnitOut:
+        """
+        writes the knitout for knitting the specified loops
+        """
+
+        output = KnitOut()
+
+        if carrier_index == None:
+            carrier = self.active_carrier
+            carrier_index = int(carrier)
+        elif type(carrier_index) == int:
+            carrier = self.get_carrier(carrier_index)
+        else:
+            raise TypeError(
+                f"carrier_index must be int or None not {type(carrier_index)}"
+            )
+
+        if direction == None:
+            direction = carrier.infer_direction(loops)
+
+        loops = loops.sorted(direction)
+
+        for l in loops:
+            output += l.knit(direction, carrier_index)
+
+        self.knitout += output
+
+        carrier.set_position(int(loops[-1]))
+
+        return output
+
     def output(self, lines: KnitOut) -> str:
         program = "\n".join(lines) + "\n"
         with open(self.output_filename, "w") as file:
@@ -371,35 +283,14 @@ class Pattern(ABC):
         raise NotImplementedError("unimplemented, inherit and do that in your program")
 
 
-class StockinetteSquare(Pattern):
-    def run(self) -> KnitOut:
-        needles = self.cast_on_needles
-        knitout = (
-            self.header()
-            + backwards_loop_cast_on(
-                needles=needles,
-                direction=CarrierDirection.LEFT,
-                carrier=Carrier(3),
-            )
-            + knit_rows(
-                direction=CarrierDirection.LEFT,
-                needles=needles,
-                carrier=Carrier(3),
-                height=30,
-            )
-            + chain_bind_off(
-                needles=needles, direction=CarrierDirection.LEFT, carrier=Carrier(3)
-            )
-        )
-
-        return knitout
-
-
 class Test(Pattern):
     def run(self) -> KnitOut:
-        self.set_active_carrier(1)
-        my_loops = self.twisted_cast_on(self.front_needles[-30:])
+        self.set_active_carrier(3)
+        my_loops = self.twisted_cast_on(self.front_needles[389:419])
+        print(my_loops)
         self.releasehook()
+        for i in range(31):
+            self.knit(my_loops)
 
 
 """
@@ -419,16 +310,8 @@ pattern.bind_off(my_loops)
 
 # you can invoke this and test it via...
 # ./purl_test.py new_output.k &&  cmp new_output.k expected_output.k && echo "new_output matches expected output. woo hoo\!"
-""" 
-try:
-    filename = sys.argv[1]
-except:
-    print(f"usage: {sys.argv[0]} output_filename")
-    exit(1)
 
-ss = StockinetteSquare(output_filename=filename, starting_needle=390, ending_needle=420)
-ss.compile()
- """
 if __name__ == "__main__":
-    test1 = Test("test.txt")
+    test1 = Test("test.k")
     test1.compile()
+    print("completed execution!")
