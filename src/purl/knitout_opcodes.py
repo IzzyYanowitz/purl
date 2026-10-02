@@ -1,4 +1,4 @@
-from .utils import KnitOut, CarrierDirection, Needle
+from .machine_types import KnitOut, CarrierDirection, Needle
 
 
 def inhook(carrier: int) -> KnitOut:

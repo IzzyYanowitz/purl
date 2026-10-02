@@ -4,7 +4,7 @@ from functools import wraps, total_ordering
 from abc import ABC
 import inspect
 
-from .utils import (
+from .machine_types import (
     Needle,
     CarrierDirection,
     KnitOut,

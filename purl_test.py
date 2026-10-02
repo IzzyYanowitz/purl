@@ -8,7 +8,7 @@ import inspect
 from abc import ABC
 
 from purl.knitout_opcodes import *
-from purl.utils import *
+from purl.machine_types import *
 from purl.loops import *
 from purl.carrier import *
 
