@@ -11,6 +11,7 @@
 request loops
   - [ ] figure out how to handle Loops.split creating new loops
   - [ ] abstract the exceptions in the various inhooking and outhooking functions
+    - [ ] seriously though these functions are awful. I'm pretty sure Prof. Danner would kill you if he saw these
   - [ ] consider if should be able to outhook a carrier that was never inhooked
   
 

@@ -10,6 +10,7 @@ from abc import ABC
 from purl.knitout_opcodes import *
 from purl.utils import *
 from purl.loops import *
+from purl.carrier import *
 
 # IZZY TODO: move carriers and header into AbstractPurlProgram
 
@@ -136,7 +137,7 @@ def chain_bind_off(
     return knitout
 
 
-class AbstractPattern(ABC):
+class Pattern(ABC):
     def __init__(
         self,
         output_filename: str,
@@ -173,8 +174,9 @@ class AbstractPattern(ABC):
 
         # carriers
         self.yarn_inserting_hook = 0
-        self.inhooked_carriers = []
+        self.inhooked_carriers = set()
         self.active_carrier = 0
+        self.all_carriers = [Carrier(i) for i in range(1, 11)]
 
         # knitout
         self.knitout = KnitOut([])
@@ -207,9 +209,9 @@ class AbstractPattern(ABC):
                 f"yarn inserting hook is full but you tried to inhook carrier {carrier}. Did you forget to releasehook?"
             )
 
-        self.inhooked_carriers.append(carrier)
-        self.yarn_inserting_hook = carrier
-        output = inhook(carrier)
+        self.inhooked_carriers.add(carrier)
+        self.yarn_inserting_hook = carrier.index
+        output = carrier.inhook()
         self.knitout += output
         return output
 
@@ -228,18 +230,20 @@ class AbstractPattern(ABC):
         self.knitout += output
         return output
 
-    def cut(self, carrier: Carrier) -> KnitOut:
+    def cut(self, carrier: int | Carrier) -> KnitOut:
         """synonym for outhook"""
         return self.outhook(carrier)
 
-    def outhook(self, carrier: Carrier) -> KnitOut:
+    def outhook(self, carrier: int | Carrier) -> KnitOut:
         """
         outhooks the current carrier
         """
+        if type(carrier) == int:
+            carrier = self.all_carriers[carrier - 1]
 
         if carrier not in self.inhooked_carriers:
-            raise Exception(
-                f"You tried to outhook a carrier ({carrier}) that you never inhooked"
+            print(
+                f"WARNING: You outhooked a carrier ({carrier}) that you never inhooked!"
             )
 
         if self.yarn_inserting_hook:
@@ -247,17 +251,28 @@ class AbstractPattern(ABC):
                 f"You tried to outhook carrier {carrier} but the yarn inserting hook is already full. Did you forget to releasehook?"
             )
 
-        output = outhook(carrier)
+        if self.active_carrier == carrier:
+            self.active_carrier = 0
+
+        output = carrier.outhook()
         self.inhooked_carriers.remove(carrier)
+
         self.knitout += output
 
         return output
 
-    def set_active_carrier(self, carrier: Carrier) -> int:
+    def set_active_carrier(self, carrier_index: int) -> Carrier:
         """
+        TODO: figure out if this should take an int or carrier and if it should return an int or a carrier
         sets the active carrier and inhooks if neccesary
         carriers on our machine can be 1 to 10
         """
+        if carrier_index > len(self.all_carriers) or carrier_index <= 0:
+            raise Exception(
+                f"Tried to activate carrier {carrier_index}, but allowed carrier indices are 1 to 10 inclusive"
+            )
+
+        carrier = self.all_carriers[carrier_index - 1]
 
         if carrier not in self.inhooked_carriers:
             self.activate_carrier(carrier)
@@ -281,7 +296,7 @@ class AbstractPattern(ABC):
         raise NotImplementedError("unimplemented, inherit and do that in your program")
 
 
-class StockinetteSquare(AbstractPattern):
+class StockinetteSquare(Pattern):
     def run(self) -> KnitOut:
         needles = self.cast_on_needles
         knitout = (
@@ -303,6 +318,11 @@ class StockinetteSquare(AbstractPattern):
         )
 
         return knitout
+
+
+class Test(Pattern):
+    def run(self) -> KnitOut:
+        print("hello world")
 
 
 """
@@ -333,4 +353,5 @@ ss = StockinetteSquare(output_filename=filename, starting_needle=390, ending_nee
 ss.compile()
  """
 if __name__ == "__main__":
-    pass
+    test1 = Test("foo")
+    test1.run()

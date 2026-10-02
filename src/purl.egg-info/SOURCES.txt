@@ -1,6 +1,7 @@
 README.md
 pyproject.toml
 src/purl/__init__.py
+src/purl/carrier.py
 src/purl/knitout_opcodes.py
 src/purl/loops.py
 src/purl/utils.py

@@ -2,7 +2,6 @@ from enum import StrEnum
 from typing import TypeAlias
 from functools import total_ordering
 
-Carrier: TypeAlias = int
 KnitOut: TypeAlias = list[str]
 
 
