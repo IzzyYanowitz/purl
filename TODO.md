@@ -3,12 +3,13 @@
 
 - [ ] integrate Loops into AbstractPattern
   - [ ] implement all loop operations
-    - [ ] knit
+    - [x] knit
     - [ ] miss
     - [ ] tuck
     - [ ] xfer
     - [ ] 
 request loops
+    - [ ] request needles
   - [ ] figure out how to handle Loops.split creating new loops
   - [ ] abstract the exceptions in the various inhooking and outhooking functions
     - [ ] seriously though these functions are awful. I'm pretty sure Prof. Danner would kill you if he saw these
