@@ -31,12 +31,33 @@ class Carrier:
 
         return outhook(self.index)
 
-    def set_position(self, position: int) -> KnitOut:
+    def set_position(self, position: int) -> None:
 
         if not self.inhooked:
             raise Exception(f"Tried to move carrier {self.index}, but it is not active")
 
         self.position = position
+
+    def move(self, direction: CarrierDirection, needles: Loops | NeedleList) -> int:
+        """
+        sets position of the carrier after it has moved across needles
+        """
+
+        if type(needles) == Loops:
+            needle_ints = [int(l) for l in needles.loops]
+        else:
+            needle_ints = [int(n) for n in needles]
+
+        if direction == CarrierDirection.LEFT:
+            new_pos = min(needle_ints)
+        elif direction == CarrierDirection.RIGHT:
+            new_pos = max(needle_ints)
+        else:
+            raise TypeError("direction must be of type CarrierDirection")
+
+        self.set_position(new_pos)
+
+        return new_pos
 
     def infer_direction(self, needles: Loops | NeedleList) -> CarrierDirection:
         if type(needles) == Loops:

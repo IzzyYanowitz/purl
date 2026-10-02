@@ -217,7 +217,7 @@ class Loops:
     def knit(self, direction: CarrierDirection, carrier: int) -> KnitOut:
         """returns the knitout for knitting a list of loops"""
         output = []
-        for l in self.loops:
+        for l in self.sorted(direction):
             output += l.knit(direction, carrier)
 
         return output
@@ -227,7 +227,7 @@ class Loops:
     def tuck(self, direction: CarrierDirection, carrier: int) -> KnitOut:
         """returns the knitout for tucking a list of loops"""
         output = []
-        for l in self.loops:
+        for l in self.sorted(direction):
             output += l.tuck(direction, carrier)
 
         return output
@@ -237,7 +237,7 @@ class Loops:
     def miss(self, direction: CarrierDirection, carrier: int) -> KnitOut:
         """returns the knitout for missing a list of loops"""
         output = []
-        for l in self.loops:
+        for l in self.sorted(direction):
             output += l.miss(direction, carrier)
 
         return output
@@ -314,7 +314,7 @@ class Loops:
 
         destination_needles = self.opposite(offset)
 
-        for i, l in enumerate(self.loops):
+        for i, l in enumerate(self.sorted(direction)):
             output += l.split(direction, carrier, destination_needles[i])
 
         if offset:

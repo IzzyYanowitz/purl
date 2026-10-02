@@ -4,12 +4,14 @@
 - [ ] integrate Loops into AbstractPattern
   - [ ] implement all loop operations
     - [x] knit
-    - [ ] miss
-    - [ ] tuck
-    - [ ] xfer
-    - [ ] 
+    - [x] miss
+    - [x] tuck
+    - [x] split
+    - [x] xfer
+      - [ ] i'd consider more carefully which order to xfer the loops in, it kinda matters
+    - [x] 
 request loops
-    - [ ] request needles
+    - [x] request needles
   - [ ] figure out how to handle Loops.split creating new loops
   - [ ] abstract the exceptions in the various inhooking and outhooking functions
     - [ ] seriously though these functions are awful. I'm pretty sure Prof. Danner would kill you if he saw these
@@ -18,6 +20,8 @@ request loops
 
   - [ ] fix all the error messages but specifically the cannot infer carrier direction one. make them good instead of bad is my adivce  
 
+  - [ ] all these functions returning knitout makes no sense
+  - [ ] 
 # dumping program
 - [ ] dump all ideas into here and organize them
 

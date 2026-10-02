@@ -202,3 +202,18 @@ except:
 ss = StockinetteSquare(output_filename=filename, starting_needle=390, ending_needle=420)
 ss.compile()
  """
+
+
+"""
+taking a step back, this is roughly the behaviour i want to implement
+
+pattern.set_active_carrier(5)
+my_loops = pattern.cast_on(pattern.Front_Needles[25 : 50])
+# print(my_loops) -> [Loop(f25), Loop(f26), Loop(f27)..., Loop(f49)]
+for i in range(20):
+    pattern.knit(my_loops)
+
+pattern.bind_off(my_loops)
+
+# print(my_loops) -> [Loop(f25)]
+"""

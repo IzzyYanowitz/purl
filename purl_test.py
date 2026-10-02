@@ -291,7 +291,36 @@ class Pattern(ABC):
         writes the knitout for knitting the specified loops
         """
 
-        output = KnitOut()
+        if carrier_index == None:
+            carrier = self.active_carrier
+            carrier_index = int(carrier)
+        elif type(carrier_index) == int:
+            carrier = self.get_carrier(carrier_index)
+        else:
+            raise TypeError(
+                f"carrier_index must be int or None not {type(carrier_index)}"
+            )
+
+        if direction == None:
+            direction = carrier.infer_direction(loops)
+
+        output = loops.knit(direction, carrier_index)
+
+        self.knitout += output
+
+        carrier.move(direction, loops)
+
+        return output
+
+    def tuck(
+        self,
+        loops: Loops,
+        carrier_index: int = None,
+        direction: CarrierDirection = None,
+    ) -> KnitOut:
+        """
+        writes the knitout for tucking the specified loops
+        """
 
         if carrier_index == None:
             carrier = self.active_carrier
@@ -306,16 +335,87 @@ class Pattern(ABC):
         if direction == None:
             direction = carrier.infer_direction(loops)
 
-        loops = loops.sorted(direction)
-
-        for l in loops:
-            output += l.knit(direction, carrier_index)
+        output = loops.tuck(direction, carrier_index)
 
         self.knitout += output
 
-        carrier.set_position(int(loops[-1]))
+        carrier.move(direction, loops)
 
         return output
+
+    def miss(
+        self,
+        loops: Loops,
+        carrier_index: int = None,
+        direction: CarrierDirection = None,
+    ) -> KnitOut:
+        """
+        writes the knitout for missing the specified loops
+        """
+
+        if carrier_index == None:
+            carrier = self.active_carrier
+            carrier_index = int(carrier)
+        elif type(carrier_index) == int:
+            carrier = self.get_carrier(carrier_index)
+        else:
+            raise TypeError(
+                f"carrier_index must be int or None not {type(carrier_index)}"
+            )
+
+        if direction == None:
+            direction = carrier.infer_direction(loops)
+
+        output = loops.miss(direction, carrier_index)
+
+        self.knitout += output
+
+        carrier.move(direction, loops)
+
+        return output
+
+    def xfer(self, loops: Loops, offset: int = 0) -> KnitOut:
+        """
+        writes the knitscript for xfering loops with optional offset
+        positive offset is right, negative is left
+        all loops must be on the same bed
+        """
+
+        output = loops.xfer(offset)
+
+        self.knitout += output
+
+        return output
+
+    def split(
+        self,
+        loops: Loops,
+        offset: int = 0,
+        carrier_index: int = None,
+        direction: CarrierDirection = None,
+    ) -> Loops:
+
+        if carrier_index == None:
+            carrier = self.active_carrier
+            carrier_index = int(carrier)
+        elif type(carrier_index) == int:
+            carrier = self.get_carrier(carrier_index)
+        else:
+            raise TypeError(
+                f"carrier_index must be int or None not {type(carrier_index)}"
+            )
+
+        if direction == None:
+            direction = carrier.infer_direction(loops)
+
+        output = loops.split(direction, carrier, offset)
+        self.knitout += output
+        carrier.move(direction, loops)
+
+        new_loop_locations = NeedleList([l.needle.opposite(offset) for l in loops])
+        new_loops = self.make_loops(new_loop_locations)
+
+        return new_loops
 
     def output(self, lines: KnitOut) -> str:
         program = "\n".join(lines) + "\n"
@@ -343,21 +443,6 @@ class Test(Pattern):
         self.releasehook()
         for i in range(31):
             self.knit(my_loops)
-
-
-"""
-taking a step back, this is roughly the behaviour i want to implement
-
-pattern.set_active_carrier(5)
-my_loops = pattern.cast_on(pattern.Front_Needles[25 : 50])
-# print(my_loops) -> [Loop(f25), Loop(f26), Loop(f27)..., Loop(f49)]
-for i in range(20):
-    pattern.knit(my_loops)
-
-pattern.bind_off(my_loops)
-
-# print(my_loops) -> [Loop(f25)]
-"""
 
 
 # you can invoke this and test it via...
