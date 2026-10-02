@@ -9,6 +9,7 @@ from abc import ABC
 
 from purl.knitout_opcodes import *
 from purl.utils import *
+from purl.loops import *
 
 # IZZY TODO: move carriers and header into AbstractPurlProgram
 
@@ -135,10 +136,7 @@ def chain_bind_off(
     return knitout
 
 
-# TODO: there's a decorator to decalre an abstract class (or interface), use it
-
-
-class AbstractPurlProgram(ABC):
+class AbstractPattern(ABC):
     def __init__(
         self,
         output_filename: str,
@@ -168,6 +166,19 @@ class AbstractPurlProgram(ABC):
         self.width = width
         self.justify_position = justify_position
 
+        # loops
+        self.all_loops = Loops([])
+        self.front_loops = Loops([])
+        self.back_loops = Loops([])
+
+        # carriers
+        self.yarn_inserting_hook = 0
+        self.inhooked_carriers = []
+        self.active_carrier = 0
+
+        # knitout
+        self.knitout = KnitOut([])
+
     def header(self) -> KnitOut:
         return [
             f";!{self.knitout_version}",
@@ -177,6 +188,74 @@ class AbstractPurlProgram(ABC):
             f";;Width: {self.width}",
             f";;Position: {self.justify_position}",
         ]
+
+    def activate_carrier(self, carrier: Carrier) -> KnitOut:
+        """
+        inhooks carrier and writes the KnitOut
+        be sure to releasehook before you try to activate another carrier
+        activate_carrier(already_active_carrier) is a safe no-op
+        """
+
+        if carrier in self.inhooked_carriers:
+            return
+
+        if self.yarn_inserting_hook:
+            raise f"yarn inserting hook is full but you tried to inhook carrier {carrier}. Did you forget to releasehook?"
+
+        self.inhooked_carriers.append(carrier)
+        self.yarn_inserting_hook = carrier
+        output = inhook(carrier)
+        self.knitout += output
+        return output
+
+    def releasehook(self) -> KnitOut:
+        """
+        writes the knitout to release the yarn inserting hook
+        if yarn inserting hook is empty, this is a safe no-op
+        """
+
+        if not self.yarn_inserting_hook:
+            return
+
+        output = releasehook(self.yarn_inserting_hook)
+        self.yarn_inserting_hook = 0
+
+        self.knitout += output
+        return output
+
+    def cut(self, carrier: Carrier) -> KnitOut:
+        """synonym for outhook"""
+        return self.outhook(carrier)
+
+    def outhook(self, carrier: Carrier) -> KnitOut:
+        """
+        outhooks the current carrier
+        """
+
+        if carrier not in self.inhooked_carriers:
+            raise f"You tried to outhook a carrier ({carrier}) that you never inhooked"
+
+        if self.yarn_inserting_hook:
+            raise f"You tried to outhook carrier {carrier} but it's already full. Did you forget to releasehook?"
+
+        output = outhook(carrier)
+        self.inhooked_carriers.remove(carrier)
+        self.knitout += output
+
+        return output
+
+    def set_active_carrier(self, carrier: Carrier) -> int:
+        """
+        sets the active carrier and inhooks if neccesary
+        carriers on our machine can be 1 to 10
+        """
+
+        if carrier not in self.inhooked_carriers:
+            self.activate_carrier(carrier)
+
+        self.active_carrier = carrier
+
+        return carrier
 
     def output(self, lines: KnitOut) -> str:
         program = "\n".join(lines) + "\n"
@@ -190,86 +269,10 @@ class AbstractPurlProgram(ABC):
         return self.output(knit_out)
 
     def run() -> KnitOut:
-        raise "unimplemented, inherit and do that in your program"
+        raise NotImplementedError("unimplemented, inherit and do that in your program")
 
 
-def clean_loops(func):
-    @wraps(func)
-    def wrapper(self: Loops, *args, **kwargs):
-        seen_needles = set()
-        safe_loops = []
-        for i, l in enumerate(self.loops):
-            if l.needle not in seen_needles:
-                safe_loops.append(l.needle)
-                seen_needles.add(l.needle)
-
-        self.loops = safe_loops
-
-
-def moves_loop(func):
-    signature = inspect.signature(func)
-
-    @wraps(func)
-    def wrapper(self, *args, **kwargs):
-        ko = func(self, *args, **kwargs)
-
-        # Figure out which argument was destination_needle
-        bound = signature.bind(self, *args, **kwargs)
-        destination_needle = bound.arguments["destination_needle"]
-
-        self.needle = destination_needle
-        return ko
-
-    return wrapper
-
-
-class Loop:
-    def __init__(self, needle: Needle):
-        self.needle = needle
-
-    def __repr__(self):
-        return f"Loop({str(self.needle)})"
-
-    def __str__(self):
-        return f"Loop({str(self.needle)})"
-
-    def knit(self, direction: CarrierDirection, carrier: int):
-        return knit(direction=direction, source_needle=self.needle, carrier=carrier)
-
-    def tuck(self, direction: CarrierDirection, carrier: int):
-        return tuck(direction=direction, source_needle=self.needle, carrier=carrier)
-
-    def miss(self, direction: CarrierDirection, carrier: int):
-        return miss(direction=direction, source_needle=self.needle, carrier=carrier)
-
-    @moves_loop
-    def split(
-        self, direction: CarrierDirection, carrier: int, destination_needle: Needle
-    ):
-        """by convention, split moves the old loop and creates a new one in its place"""
-        return split(
-            direction=direction,
-            source_needle=self.needle,
-            destination_needle=destination_needle,
-            carrier=carrier,
-        )
-
-    @moves_loop
-    def xfer(self, destination_needle: Needle):
-        return xfer(source_needle=self.needle, destination_needle=destination_needle)
-
-
-class Loops:
-
-    def __init__(self, loops: list[Loop] = []):
-        self.loops = loops
-
-    @clean_loops
-    def knit(self, direction: CarrierDirection, carrier: int):
-        pass
-
-
-class StockinetteSquare(AbstractPurlProgram):
+class StockinetteSquare(AbstractPattern):
     def run(self) -> KnitOut:
         needles = self.cast_on_needles
         knitout = (
@@ -293,9 +296,24 @@ class StockinetteSquare(AbstractPurlProgram):
         return knitout
 
 
+"""
+taking a step back, this is roughly the behaviour i want to implement
+
+pattern.set_active_carrier(5)
+my_loops = pattern.cast_on(pattern.Front_Needles[25 : 50])
+# print(my_loops) -> [Loop(f25), Loop(f26), Loop(f27)..., Loop(f49)]
+for i in range(20):
+    pattern.knit(my_loops)
+
+pattern.bind_off(my_loops)
+
+# print(my_loops) -> [Loop(f25)]
+"""
+
+
 # you can invoke this and test it via...
 # ./purl_test.py new_output.k &&  cmp new_output.k expected_output.k && echo "new_output matches expected output. woo hoo\!"
-""" 
+
 try:
     filename = sys.argv[1]
 except:
@@ -304,4 +322,3 @@ except:
 
 ss = StockinetteSquare(output_filename=filename, starting_needle=390, ending_needle=420)
 ss.compile()
- """

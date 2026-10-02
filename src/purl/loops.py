@@ -4,7 +4,14 @@ from functools import wraps
 from abc import ABC
 import inspect
 
-from .utils import Needle, CarrierDirection, KnitOut, KnittingMachineBed, NeedleList
+from .utils import (
+    Needle,
+    CarrierDirection,
+    KnitOut,
+    KnittingMachineBed,
+    NeedleList,
+    Carrier,
+)
 from .knitout_opcodes import knit, tuck, miss, split, xfer, rack
 
 
@@ -46,28 +53,28 @@ class Loop:
 
         return self.needle.opposite(offset)
 
-    def knit(self, direction: CarrierDirection, carrier: int) -> KnitOut:
+    def knit(self, direction: CarrierDirection, carrier: Carrier) -> KnitOut:
         """
         returns the knitout for knitting this loop
         """
 
         return knit(direction=direction, source_needle=self.needle, carrier=carrier)
 
-    def tuck(self, direction: CarrierDirection, carrier: int) -> KnitOut:
+    def tuck(self, direction: CarrierDirection, carrier: Carrier) -> KnitOut:
         """
         returns the knitout for tucking this loop
         """
 
         return tuck(direction=direction, source_needle=self.needle, carrier=carrier)
 
-    def miss(self, direction: CarrierDirection, carrier: int) -> KnitOut:
+    def miss(self, direction: CarrierDirection, carrier: Carrier) -> KnitOut:
         """
         returns the knitout for missing this loop
         """
         return miss(direction=direction, source_needle=self.needle, carrier=carrier)
 
     def split(
-        self, direction: CarrierDirection, carrier: int, destination_needle: Needle
+        self, direction: CarrierDirection, carrier: Carrier, destination_needle: Needle
     ) -> KnitOut:
         """
         returns the knitout for splitting this loop
@@ -149,7 +156,7 @@ class Loops:
 
     @clean_loops
     @needs_loops
-    def knit(self, direction: CarrierDirection, carrier: int) -> KnitOut:
+    def knit(self, direction: CarrierDirection, carrier: Carrier) -> KnitOut:
         """returns the knitout for knitting a list of loops"""
         output = []
         for l in self.loops:
@@ -159,7 +166,7 @@ class Loops:
 
     @clean_loops
     @needs_loops
-    def tuck(self, direction: CarrierDirection, carrier: int) -> KnitOut:
+    def tuck(self, direction: CarrierDirection, carrier: Carrier) -> KnitOut:
         """returns the knitout for tucking a list of loops"""
         output = []
         for l in self.loops:
@@ -169,7 +176,7 @@ class Loops:
 
     @clean_loops
     @needs_loops
-    def miss(self, direction: CarrierDirection, carrier: int) -> KnitOut:
+    def miss(self, direction: CarrierDirection, carrier: Carrier) -> KnitOut:
         """returns the knitout for missing a list of loops"""
         output = []
         for l in self.loops:
@@ -232,7 +239,7 @@ class Loops:
     @clean_loops
     @needs_loops
     def split(
-        self, direction: CarrierDirection, carrier: int, offset: int = 0
+        self, direction: CarrierDirection, carrier: Carrier, offset: int = 0
     ) -> KnitOut:
         """
         returns the knitout for splitting a list of loops with optional offset
