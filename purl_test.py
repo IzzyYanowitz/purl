@@ -70,6 +70,15 @@ class Pattern(ABC):
         self.knitout += output
         return output
 
+    def add_knitout_comment(self, comment: str) -> KnitOut:
+        """
+        formats writes a comment to knitout
+        """
+        output = KnitOut(";" + comment)
+        self.knitout += output
+
+        return output
+
     def activate_carrier(self, carrier: Carrier) -> KnitOut:
         """
         inhooks carrier and writes the KnitOut
@@ -167,6 +176,29 @@ class Pattern(ABC):
 
         return carrier
 
+    def request_needles(
+        self, start: int, end: int, bed: KnittingMachineBed
+    ) -> NeedleList:
+        """
+        returns a list of needles going from start up to but not including end on bed
+        Precondition: 0 < start <= end <= bed_width
+        request_needles(1, 5, KnittingMachineBed.FRONT) = [f1, f2, f3, f4]
+        """
+
+        if start < 0 or start > end or end > self.front_needles.len():
+            raise ValueError(
+                f"ERROR: start and end must be of the form 0 < start <= end <= bed_width not {start = }, {end = }"
+            )
+
+        if bed == KnittingMachineBed.FRONT:
+            return self.front_needles[start - 1 : end - 1]
+        elif bed == KnittingMachineBed.BACK:
+            return self.back_needles[start - 1 : end - 1]
+        else:
+            raise TypeError(
+                f"ERROR: requested needles on bed that does't exist. bed must be of type KnittingMachineBed"
+            )
+
     def make_loops(self, needles: NeedleList) -> Loops:
         """
         adds any needles not already in self.all_loops then returns a list of loops on needles
@@ -182,6 +214,24 @@ class Pattern(ABC):
             else:
                 self.back_loops.append(a_loop)
 
+            output_loops.append(a_loop)
+
+        return output_loops
+
+    def request_loops(self, needles: NeedleList) -> Loops:
+        """
+        returns loops of needles
+        all input needles must have loops on them
+        """
+
+        output_loops = Loops()
+
+        for n in needles:
+            a_loop = Loop(n)
+            if a_loop not in self.all_loops:
+                raise Exception(
+                    f"You requested {a_loop} but there is no loop on that needle"
+                )
             output_loops.append(a_loop)
 
         return output_loops
@@ -286,8 +336,10 @@ class Pattern(ABC):
 class Test(Pattern):
     def run(self) -> KnitOut:
         self.set_active_carrier(3)
-        my_loops = self.twisted_cast_on(self.front_needles[389:419])
-        print(my_loops)
+        my_needles = self.request_needles(390, 420, KnittingMachineBed.FRONT)
+
+        my_loops = self.twisted_cast_on(my_needles)
+
         self.releasehook()
         for i in range(31):
             self.knit(my_loops)

@@ -116,3 +116,6 @@ class NeedleList:
         """
 
         return NeedleList(i.opposite(offset) for i in self.needles)
+
+    def len(self) -> int:
+        return len(self.needles)

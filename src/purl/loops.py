@@ -173,6 +173,12 @@ class Loops:
     def __iter__(self):
         return iter(self.loops)
 
+    def __contains__(self, l: Loop) -> bool:
+        for loop in self.loops:
+            if l.needle == loop.needle:
+                return True
+        return False
+
     @clean_loops
     def sorted(self, direction: CarrierDirection):
         ls = sorted(self.loops)
