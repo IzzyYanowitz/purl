@@ -68,7 +68,7 @@ class NeedleList:
         return iter(self.needles)
 
     def __repr__(self):
-        return str([str(i) for i in self.needles])
+        return "[%s]" % ", ".join([str(n) for n in self.needles])
 
     def __getitem__(self, index: int | slice) -> Needle:
         match index:
@@ -78,6 +78,9 @@ class NeedleList:
                 return self.needles[index]
             case _:
                 raise ValueError(f"expected slice | int, got {type(index)}")
+
+    def __add__(self, other):
+        return NeedleList(self.needles + other.needles)
 
     def assert_same_bed(self) -> bool:
         if len({needle.bed for needle in self.needles}) == 1:

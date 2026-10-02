@@ -1,14 +1,19 @@
 # next actions
-- [x] create AbstractPurlProgram class
-- [x] creating Loops and syntax for getting loops
-- [x] rename AbstractPurlProgram to AbstractPattern
+
+
 - [ ] integrate Loops into AbstractPattern
+  - [ ] implement all loop operations
+    - [ ] knit
+    - [ ] miss
+    - [ ] tuck
+    - [ ] xfer
+    - [ ] 
+request loops
+  - [ ] figure out how to handle Loops.split creating new loops
+  - [ ] abstract the exceptions in the various inhooking and outhooking functions
+  - [ ] consider if should be able to outhook a carrier that was never inhooked
+  
 
-- [ ] figure out how to handle Loops.split creating new loops
-- [ ] abstract the exceptions in the various inhooking and outhooking functions
-- [ ] consider if should be able to outhook a carrier that was never inhooked
-
-- [ ] test the various inhook and outhook functions
 # dumping program
 - [ ] dump all ideas into here and organize them
 

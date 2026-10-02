@@ -140,8 +140,6 @@ class AbstractPattern(ABC):
     def __init__(
         self,
         output_filename: str,
-        starting_needle: int,
-        ending_needle: int,
         knitout_version: str = "knitout-2",
         machine_name: str = "SWG091N2",
         gauge: int = 13,
@@ -150,13 +148,6 @@ class AbstractPattern(ABC):
     ):
         # program settings
         self.output_filename = output_filename
-        self.starting_needle = starting_needle
-        self.ending_needle = ending_needle
-
-        self.cast_on_needles = NeedleList(
-            Needle(i, KnittingMachineBed.FRONT)
-            for i in range(self.starting_needle, self.ending_needle)
-        )
 
         # machine settings
         self.carriers = [Carrier(i) for i in range(1, 11)]
@@ -165,6 +156,15 @@ class AbstractPattern(ABC):
         self.gauge = gauge
         self.width = width
         self.justify_position = justify_position
+
+        # needles
+        self.front_needles = NeedleList(
+            [Needle(i, KnittingMachineBed.FRONT) for i in range(1, width + 1)]
+        )
+        self.back_needles = NeedleList(
+            [Needle(i, KnittingMachineBed.BACK) for i in range(1, width + 1)]
+        )
+        self.all_needles = self.front_needles + self.back_needles
 
         # loops
         self.all_loops = Loops([])
@@ -180,7 +180,8 @@ class AbstractPattern(ABC):
         self.knitout = KnitOut([])
 
     def header(self) -> KnitOut:
-        return [
+        """writes the knitout for the header"""
+        output = [
             f";!{self.knitout_version}",
             f";;Carriers: {' '.join(str(i) for i in self.carriers)}",
             f";;Machine: {self.machine_name}",
@@ -188,6 +189,8 @@ class AbstractPattern(ABC):
             f";;Width: {self.width}",
             f";;Position: {self.justify_position}",
         ]
+        self.knitout += output
+        return output
 
     def activate_carrier(self, carrier: Carrier) -> KnitOut:
         """
@@ -200,7 +203,9 @@ class AbstractPattern(ABC):
             return
 
         if self.yarn_inserting_hook:
-            raise f"yarn inserting hook is full but you tried to inhook carrier {carrier}. Did you forget to releasehook?"
+            raise Exception(
+                f"yarn inserting hook is full but you tried to inhook carrier {carrier}. Did you forget to releasehook?"
+            )
 
         self.inhooked_carriers.append(carrier)
         self.yarn_inserting_hook = carrier
@@ -233,10 +238,14 @@ class AbstractPattern(ABC):
         """
 
         if carrier not in self.inhooked_carriers:
-            raise f"You tried to outhook a carrier ({carrier}) that you never inhooked"
+            raise Exception(
+                f"You tried to outhook a carrier ({carrier}) that you never inhooked"
+            )
 
         if self.yarn_inserting_hook:
-            raise f"You tried to outhook carrier {carrier} but it's already full. Did you forget to releasehook?"
+            raise Exception(
+                f"You tried to outhook carrier {carrier} but the yarn inserting hook is already full. Did you forget to releasehook?"
+            )
 
         output = outhook(carrier)
         self.inhooked_carriers.remove(carrier)
@@ -265,8 +274,8 @@ class AbstractPattern(ABC):
 
     def compile(self) -> str:
         """outputs a .k file"""
-        knit_out = self.run()
-        return self.output(knit_out)
+        self.run()
+        return self.output(self.knitout)
 
     def run() -> KnitOut:
         raise NotImplementedError("unimplemented, inherit and do that in your program")
@@ -313,7 +322,7 @@ pattern.bind_off(my_loops)
 
 # you can invoke this and test it via...
 # ./purl_test.py new_output.k &&  cmp new_output.k expected_output.k && echo "new_output matches expected output. woo hoo\!"
-
+""" 
 try:
     filename = sys.argv[1]
 except:
@@ -322,3 +331,6 @@ except:
 
 ss = StockinetteSquare(output_filename=filename, starting_needle=390, ending_needle=420)
 ss.compile()
+ """
+if __name__ == "__main__":
+    pass
