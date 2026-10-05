@@ -5,6 +5,7 @@ src/purl/carrier.py
 src/purl/knitout_opcodes.py
 src/purl/loops.py
 src/purl/utils.py
+src/purl/purl.py
 src/purl.egg-info/PKG-INFO
 src/purl.egg-info/SOURCES.txt
 src/purl.egg-info/dependency_links.txt

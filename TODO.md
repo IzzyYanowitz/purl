@@ -23,6 +23,7 @@ request loops
   - [ ] all these functions returning knitout makes no sense
   - [ ] LOOPS NEEDS TO BE CLEANED MORE OFTEN
   - [ ] cast on function seems right, but knits up weirdly. Not sure if the issue is the machine or the code.
+  - [ ] reoganize purl test into the module
 # dumping program
 - [ ] dump all ideas into here and organize them
 
@@ -37,4 +38,6 @@ request loops
 - [ ] create request loops
 - [ ] create a cast on function
 - [ ] figure out how to add things to all_loops
- 
+  
+
+**hello** 

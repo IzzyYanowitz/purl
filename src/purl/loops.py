@@ -3,6 +3,7 @@ from itertools import chain
 from functools import wraps, total_ordering
 from abc import ABC
 import inspect
+from time import time
 
 from .machine_types import (
     Needle,
@@ -39,6 +40,8 @@ def moves_loop(func):
 class Loop:
     def __init__(self, needle: Needle):
         self.needle = needle
+        self.is_obsolete = False
+        self.debug_name = str(time())
 
     def __repr__(self):
         return f"Loop({str(self.needle)})"
@@ -115,7 +118,12 @@ def clean_loops(func):
         seen_needles = set()
         safe_loops = []
         for i, l in enumerate(self.loops):
-            if l.needle not in seen_needles:
+
+            if l.is_obsolete:
+                continue
+            elif l.needle in seen_needles:
+                l.is_obsolete = True
+            else:
                 safe_loops.append(l)
                 seen_needles.add(l.needle)
 
@@ -163,6 +171,7 @@ class Loops:
     def __str__(self):
         return "[%s]" % ", ".join([str(l) for l in self.loops])
 
+    @clean_loops
     def __getitem__(self, index: slice | int):
         match index:
             case slice():

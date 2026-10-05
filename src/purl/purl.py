@@ -2,44 +2,49 @@
 
 
 import sys
+from pathlib import Path
+
 from itertools import chain
 from functools import wraps
 import inspect
 from abc import ABC
 
-from purl.knitout_opcodes import *
-from purl.machine_types import *
-from purl.loops import *
-from purl.carrier import *
+from .knitout_opcodes import *
+from .machine_types import *
+from .loops import *
+from .carrier import *
+
+from knitout_compilers.compile_knitout import knitout_to_dat
 
 
 class Pattern(ABC):
     def __init__(
         self,
-        output_filename: str,
+        filename: str,
         knitout_version: str = "knitout-2",
         machine_name: str = "SWG091N2",
         gauge: int = 13,
-        width: int = 450,
+        bed_width: int = 450,
         justify_position: str = "Keep",
     ):
         # program settings
-        self.output_filename = output_filename
+        self.filename = filename
+        self.generate_output_files()
 
         # machine settings
         self.carriers = [Carrier(i) for i in range(1, 11)]
         self.knitout_version = knitout_version
         self.machine_name = machine_name
         self.gauge = gauge
-        self.width = width
+        self.bed_width = bed_width
         self.justify_position = justify_position
 
         # needles
         self.front_needles = NeedleList(
-            [Needle(i, KnittingMachineBed.FRONT) for i in range(1, width + 1)]
+            [Needle(i, KnittingMachineBed.FRONT) for i in range(1, bed_width + 1)]
         )
         self.back_needles = NeedleList(
-            [Needle(i, KnittingMachineBed.BACK) for i in range(1, width + 1)]
+            [Needle(i, KnittingMachineBed.BACK) for i in range(1, bed_width + 1)]
         )
         self.all_needles = self.front_needles + self.back_needles
 
@@ -57,6 +62,11 @@ class Pattern(ABC):
         # knitout
         self.knitout = KnitOut([])
 
+    def generate_output_files(self):
+        dir_path = str(Path(sys.modules["__main__"].__file__).resolve().parent)
+        self.knitout_file_name = dir_path + "/" + self.filename + ".k"
+        self.dat_file_name = dir_path + "/" + self.filename + ".dat"
+
     def header(self) -> KnitOut:
         """writes the knitout for the header"""
         output = [
@@ -64,7 +74,7 @@ class Pattern(ABC):
             f";;Carriers: {' '.join(str(i) for i in self.carriers)}",
             f";;Machine: {self.machine_name}",
             f";;Gauge: {self.gauge}",
-            f";;Width: {self.width}",
+            f";;Width: {self.bed_width}",
             f";;Position: {self.justify_position}",
         ]
         self.knitout += output
@@ -107,6 +117,7 @@ class Pattern(ABC):
         """
 
         if not self.yarn_inserting_hook:
+            print("HI")
             return
 
         output = releasehook(self.yarn_inserting_hook)
@@ -245,6 +256,8 @@ class Pattern(ABC):
         """
         writes the knitout for knitting the specified loops
         """
+        loops.clean()
+        self.clean()
 
         if carrier_index == None:
             carrier = self.active_carrier
@@ -261,8 +274,6 @@ class Pattern(ABC):
 
         if direction == None:
             direction = carrier.infer_direction(loops)
-
-        loops.clean()
 
         output = loops.knit(direction, carrier_index)
 
@@ -282,6 +293,9 @@ class Pattern(ABC):
         writes the knitout for tucking the specified loops
         """
 
+        loops.clean()
+        self.clean()
+
         if carrier_index == None:
             carrier = self.active_carrier
             carrier_index = int(carrier)
@@ -297,8 +311,6 @@ class Pattern(ABC):
 
         if direction == None:
             direction = carrier.infer_direction(loops)
-
-        loops.clean()
 
         output = loops.tuck(direction, carrier_index)
 
@@ -318,6 +330,9 @@ class Pattern(ABC):
         writes the knitout for missing the specified loops
         """
 
+        loops.clean()
+        self.clean()
+
         if carrier_index == None:
             carrier = self.active_carrier
             carrier_index = int(carrier)
@@ -333,8 +348,6 @@ class Pattern(ABC):
 
         if direction == None:
             direction = carrier.infer_direction(loops)
-
-        loops.clean()
 
         output = loops.miss(direction, carrier_index)
 
@@ -369,6 +382,7 @@ class Pattern(ABC):
             direction = carrier.infer_direction(loops)
 
         loops.clean()
+        self.clean()
 
         output = loops.split(direction, carrier, offset)
         self.knitout += output
@@ -385,7 +399,8 @@ class Pattern(ABC):
         positive offset is right, negative is left
         all loops must be on the same bed
         """
-
+        loops.clean()
+        self.clean()
         output = loops.xfer(offset)
 
         self.knitout += output
@@ -438,7 +453,21 @@ class Pattern(ABC):
         self.knitout += output
         loops = self.make_loops(needles)
 
+        self.knit(loops[0:-1])
+        self.releasehook()
+
         return loops
+
+    def clean(self):
+        self.all_loops.clean()
+        self.front_loops = Loops([])
+        self.back_loops = Loops([])
+
+        for l in self.all_loops:
+            if l.needle.bed == front_bed:
+                self.front_loops.append(l)
+            else:
+                self.back_loops.append(l)
 
     def chain_bind_off(
         self,
@@ -451,6 +480,9 @@ class Pattern(ABC):
         writes the knitout for binding off using the chain bind off
         do_hold controlls if the loops are split or knit
         """
+
+        loops.clean()
+        self.clean()
 
         if carrier_index == None:
             carrier = self.active_carrier
@@ -468,8 +500,6 @@ class Pattern(ABC):
         if direction == None:
             direction = carrier.infer_direction(loops)
 
-        loops.clean()
-
         loops = loops.sorted(direction)
 
         for _ in range(loops.len() - 1):
@@ -486,13 +516,11 @@ class Pattern(ABC):
 
             self.xfer(l)
 
-            loops.clean()
-
         self.knit(loops, carrier, direction)
 
     def output(self, lines: KnitOut) -> str:
         program = "\n".join(lines) + "\n"
-        with open(self.output_filename, "w") as file:
+        with open(self.knitout_file_name, "w") as file:
             file.write(program)
         return program
 
@@ -504,31 +532,11 @@ class Pattern(ABC):
         """outputs a .k file"""
         self.header()
         self.run()
+        self.releasehook()
         self.cut_all_carriers()
-        return self.output(self.knitout)
+        output = self.output(self.knitout)
+        knitout_to_dat(self.knitout_file_name, self.dat_file_name)
+        return output
 
     def run() -> KnitOut:
         raise NotImplementedError("unimplemented, inherit and do that in your program")
-
-
-class Test(Pattern):
-    def run(self) -> KnitOut:
-        self.set_active_carrier(3)
-        my_needles = self.request_needles(390, 420, KnittingMachineBed.FRONT)
-
-        my_loops = self.twisted_cast_on(my_needles)
-
-        self.releasehook()
-        for i in range(31):
-            self.knit(my_loops)
-
-        self.chain_bind_off(my_loops)
-
-
-# you can invoke this and test it via...
-# ./purl_test.py new_output.k &&  cmp new_output.k expected_output.k && echo "new_output matches expected output. woo hoo\!"
-
-if __name__ == "__main__":
-    test1 = Test("test.k")
-    test1.compile()
-    print("completed execution!")

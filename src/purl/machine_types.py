@@ -20,6 +20,10 @@ class CarrierDirection(StrEnum):
         return 1
 
 
+Leftward = CarrierDirection.LEFT
+Rightward = CarrierDirection.RIGHT
+
+
 class KnittingMachineBed(StrEnum):
     FRONT = "f"
     BACK = "b"
@@ -28,6 +32,10 @@ class KnittingMachineBed(StrEnum):
         if self == KnittingMachineBed.FRONT:
             return KnittingMachineBed.BACK
         return KnittingMachineBed.FRONT
+
+
+front_bed = KnittingMachineBed.FRONT
+back_bed = KnittingMachineBed.BACK
 
 
 @total_ordering

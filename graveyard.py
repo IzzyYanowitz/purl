@@ -217,3 +217,27 @@ pattern.bind_off(my_loops)
 
 # print(my_loops) -> [Loop(f25)]
 """
+"""
+# you can invoke this and test it via...
+# ./purl_test.py new_output.k &&  cmp new_output.k expected_output.k && echo "new_output matches expected output. woo hoo\!"
+
+if __name__ == "__main__":
+
+    class Test(Pattern):
+        def run(self) -> KnitOut:
+            self.set_active_carrier(3)
+            my_needles = self.request_needles(390, 420, KnittingMachineBed.FRONT)
+
+            my_loops = self.twisted_cast_on(my_needles)
+
+            self.releasehook()
+            for i in range(31):
+                self.knit(my_loops)
+
+            self.chain_bind_off(my_loops)
+
+    test1 = Test("test")
+    test1.compile()
+    print("completed execution!")
+
+"""
