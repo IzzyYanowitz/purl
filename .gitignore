@@ -1,3 +1,5 @@
 __pycache__/
 .venv/
 *test*
+*.k
+better_inst.py
