@@ -248,10 +248,33 @@ class Pattern(ABC):
 
         return output_loops
 
-    def infer_carrier(
-        self, carrier_index: int | Carrier | None = None
-    ) -> tuple[int, Carrier]:
-        """returns the carrier_index, carrier from carrier_index"""
+    def clean_input(func):
+        """decorator to clean the input of a function that takes loops, a direction, and a carrier"""
+
+        @wraps(func)
+        def wrapper(
+            self,
+            loops: NeedleList | Loops,
+            carrier: int | Carrier | None = None,
+            direction: CarrierDirection | None = None,
+            *args,
+            **kwargs,
+        ):
+            if type(loops) == Loops:
+                loops.clean()
+            self.clean()
+            direction, carrier = self.infer_direction_and_carrier(
+                loops, direction, carrier
+            )
+
+            output = func(self, loops, carrier, direction, *args, **kwargs)
+
+            return output
+
+        return wrapper
+
+    def infer_carrier(self, carrier_index: int | Carrier | None = None) -> Carrier:
+        """returns the carrier from carrier_index"""
         if carrier_index == None:
             carrier = self.active_carrier
             carrier_index = int(carrier)
@@ -264,107 +287,87 @@ class Pattern(ABC):
             raise TypeError(
                 f"carrier_index must be int or None not {type(carrier_index)}"
             )
-        return carrier_index, carrier
+        return carrier
 
     def infer_direction_and_carrier(
         self,
         loops: Loops,
         direction: CarrierDirection | None = None,
         carrier: int | Carrier | None = None,
-    ) -> tuple[CarrierDirection, int, Carrier]:
-        """returns proper carrier direction, carrier_index, carrier"""
-        carrier_index, carrier = self.infer_carrier(carrier)
+    ) -> tuple[CarrierDirection, Carrier]:
+        """returns proper carrier direction, carrier"""
+        carrier = self.infer_carrier(carrier)
         if direction == None:
             direction = carrier.infer_direction(loops)
 
-        return direction, carrier_index, carrier
+        return direction, carrier
 
+    @clean_input
     def knit(
         self,
         loops: Loops,
-        carrier_index: int | Carrier | None = None,
+        carrier: int | Carrier | None = None,
         direction: CarrierDirection | None = None,
-    ) -> KnitOut:
+    ) -> None:
         """
         writes the knitout for knitting the specified loops
         """
-        loops.clean()
-        self.clean()
-        direction, carrier_index, carrier = self.infer_direction_and_carrier(
-            loops, direction, carrier_index
-        )
 
-        output = loops.knit(direction, carrier_index)
+        output = loops.knit(direction, carrier)
 
         self.knitout += output
 
         carrier.move(direction, loops)
 
-        return output
-
+    @clean_input
     def tuck(
         self,
         loops: Loops,
-        carrier_index: int | Carrier | None = None,
+        carrier: int | Carrier | None = None,
         direction: CarrierDirection | None = None,
-    ) -> KnitOut:
+    ) -> None:
         """
         writes the knitout for tucking the specified loops
         """
 
-        loops.clean()
-        self.clean()
-        direction, carrier_index, carrier = self.infer_direction_and_carrier(
-            loops, direction, carrier_index
-        )
-
-        output = loops.tuck(direction, carrier_index)
+        output = loops.tuck(direction, carrier)
 
         self.knitout += output
 
         carrier.move(direction, loops)
 
-        return output
-
+    @clean_input
     def miss(
         self,
         loops: Loops,
-        carrier_index: int | Carrier | None = None,
+        carrier: int | Carrier | None = None,
         direction: CarrierDirection | None = None,
-    ) -> KnitOut:
+    ) -> None:
         """
         writes the knitout for missing the specified loops
         """
 
-        loops.clean()
-        self.clean()
-        direction, carrier_index, carrier = self.infer_direction_and_carrier(
-            loops, direction, carrier_index
-        )
-
-        output = loops.miss(direction, carrier_index)
+        output = loops.miss(direction, carrier)
 
         self.knitout += output
 
         carrier.move(direction, loops)
-
-        return output
 
     def drop(self, loops: Loops) -> None:
         """drops these loops"""
         self.knitout += loops.drop()
 
+    @clean_input
     def split(
         self,
         loops: Loops,
-        offset: int = 0,
-        carrier_index: int | Carrier | None = None,
+        carrier: int | Carrier | None = None,
         direction: CarrierDirection | None = None,
+        offset: int = 0,
     ) -> Loops:
+        """splits loops, outputs the loops at the location opposite the input loops"""
 
-        direction, carrier_index, carrier = self.infer_direction_and_carrier(
-            loops, direction, carrier_index
-        )
+        direction, carrier = self.infer_direction_and_carrier(loops, direction, carrier)
 
         loops.clean()
         self.clean()
@@ -378,7 +381,7 @@ class Pattern(ABC):
 
         return new_loops
 
-    def xfer(self, loops: Loops, offset: int = 0) -> KnitOut:
+    def xfer(self, loops: Loops, offset: int = 0) -> None:
         """
         writes the knitscript for xfering loops with optional offset
         positive offset is right, negative is left
@@ -390,12 +393,11 @@ class Pattern(ABC):
 
         self.knitout += output
 
-        return output
-
+    @clean_input
     def twisted_cast_on(
         self,
         needles: NeedleList,
-        carrier_index: int | Carrier | None = None,
+        carrier: int | Carrier | None = None,
         direction: CarrierDirection | None = None,
     ) -> Loops:
         """
@@ -404,23 +406,18 @@ class Pattern(ABC):
         """
         output = KnitOut()
 
-        carrier_index, carrier = self.infer_carrier(carrier_index)
-
-        if direction == None:
-            direction = carrier.infer_direction(needles)
-
         needles = needles.sorted(direction)
         first = needles[0]
         opp_direct = direction.opposite()
 
         if first.bed == KnittingMachineBed.BACK:
-            output += tuck(direction, first.opposite(), carrier_index)
-            output += tuck(opp_direct, first, carrier_index)
+            output += tuck(direction, first.opposite(), carrier)
+            output += tuck(opp_direct, first, carrier)
         else:
-            output += tuck(direction, first, carrier_index)
+            output += tuck(direction, first, carrier)
 
         for n in needles[1:]:
-            output += tuck(opp_direct, n, carrier_index)
+            output += tuck(opp_direct, n, carrier)
 
         carrier.set_position(needles[-1].index)
 
@@ -443,23 +440,18 @@ class Pattern(ABC):
             else:
                 self.back_loops.append(l)
 
+    @clean_input
     def chain_bind_off(
         self,
         loops: Loops,
-        do_hold: bool = True,
-        carrier_index: int | Carrier | None = None,
+        carrier: int | Carrier | None = None,
         direction: CarrierDirection | None = None,
+        do_hold: bool = True,
     ) -> None:
         """
         writes the knitout for binding off using the chain bind off
         do_hold controlls if the loops are split or knit
         """
-
-        loops.clean()
-        self.clean()
-        direction, carrier_index, carrier = self.infer_direction_and_carrier(
-            loops, direction, carrier_index
-        )
 
         loops = loops.sorted(direction)
 
@@ -471,7 +463,7 @@ class Pattern(ABC):
             self.knit(l, carrier, direction)
 
             if do_hold:
-                self.split(l, 0, carrier, direction)
+                self.split(l, carrier, direction)
 
             self.xfer(l, gap)
 
