@@ -248,6 +248,15 @@ class Pattern(ABC):
 
         return output_loops
 
+    def is_real_loops(self, loops: Loops) -> bool:
+        """returns true if the inputed loops are all in self.all_loops"""
+        loops.clean()
+
+        for l in loops:
+            if l not in self.all_loops:
+                return False
+        return True
+
     def clean_input(func):
         """decorator to clean the input of a function that takes loops, a direction, and a carrier"""
 
@@ -261,7 +270,11 @@ class Pattern(ABC):
             **kwargs,
         ):
             if type(loops) == Loops:
-                loops.clean()
+                if not self.is_real_loops(loops):
+                    raise Exception(
+                        f"You tried to {func.__name__} {loops}, but some of those loops aren't real"
+                    )
+
             self.clean()
             direction, carrier = self.infer_direction_and_carrier(
                 loops, direction, carrier
@@ -429,7 +442,7 @@ class Pattern(ABC):
 
         return loops
 
-    def clean(self):
+    def clean(self) -> None:
         self.all_loops.clean()
         self.front_loops = Loops([])
         self.back_loops = Loops([])
