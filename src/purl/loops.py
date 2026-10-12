@@ -12,7 +12,7 @@ from .machine_types import (
     KnittingMachineBed,
     NeedleList,
 )
-from .knitout_opcodes import knit, tuck, miss, split, xfer, rack
+from .knitout_opcodes import knit, tuck, miss, split, xfer, rack, drop
 
 
 def moves_loop(func):
@@ -84,6 +84,15 @@ class Loop:
         returns the knitout for missing this loop
         """
         return miss(direction=direction, source_needle=self.needle, carrier=carrier)
+
+    def drop(self) -> KnitOut:
+        """
+        returns the knitout for dropping this loop and obsoletes this loop
+        """
+
+        self.is_obsolete = True
+
+        return drop(self.needle)
 
     def split(
         self, direction: CarrierDirection, carrier: int, destination_needle: Needle
@@ -262,6 +271,16 @@ class Loops:
         output = []
         for l in self.sorted(direction):
             output += l.miss(direction, carrier)
+
+        return output
+
+    @clean_loops
+    @needs_loops
+    def drop(self) -> KnitOut:
+        """returns the knitout for dropping a list of loops"""
+        output = []
+        for l in self:
+            output += l.drop()
 
         return output
 

@@ -358,6 +358,10 @@ class Pattern(ABC):
 
         return output
 
+    def drop(self, loops: Loops) -> None:
+        """drops these loops"""
+        self.knitout += loops.drop()
+
     def split(
         self,
         loops: Loops,

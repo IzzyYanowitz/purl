@@ -54,6 +54,10 @@ def miss(direction: CarrierDirection, source_needle: Needle, carrier: int) -> Kn
     return KnitOut([f"miss {direction} {source_needle} {carrier}"])
 
 
+def drop(source_needle: Needle) -> KnitOut:
+    return KnitOut([f"drop {source_needle}"])
+
+
 def rack(offset: float) -> KnitOut:
     """returns the knitout \<rack\> opcode"""
 
