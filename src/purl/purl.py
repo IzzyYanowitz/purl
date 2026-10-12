@@ -248,18 +248,10 @@ class Pattern(ABC):
 
         return output_loops
 
-    def knit(
-        self,
-        loops: Loops,
-        carrier_index: int = None,
-        direction: CarrierDirection = None,
-    ) -> KnitOut:
-        """
-        writes the knitout for knitting the specified loops
-        """
-        loops.clean()
-        self.clean()
-
+    def infer_carrier(
+        self, carrier_index: int | Carrier | None = None
+    ) -> tuple[int, Carrier]:
+        """returns the carrier_index, carrier from carrier_index"""
         if carrier_index == None:
             carrier = self.active_carrier
             carrier_index = int(carrier)
@@ -272,9 +264,35 @@ class Pattern(ABC):
             raise TypeError(
                 f"carrier_index must be int or None not {type(carrier_index)}"
             )
+        return carrier_index, carrier
 
+    def infer_direction_and_carrier(
+        self,
+        loops: Loops,
+        direction: CarrierDirection | None = None,
+        carrier: int | Carrier | None = None,
+    ) -> tuple[CarrierDirection, int, Carrier]:
+        """returns proper carrier direction, carrier_index, carrier"""
+        carrier_index, carrier = self.infer_carrier(carrier)
         if direction == None:
             direction = carrier.infer_direction(loops)
+
+        return direction, carrier_index, carrier
+
+    def knit(
+        self,
+        loops: Loops,
+        carrier_index: int | Carrier | None = None,
+        direction: CarrierDirection | None = None,
+    ) -> KnitOut:
+        """
+        writes the knitout for knitting the specified loops
+        """
+        loops.clean()
+        self.clean()
+        direction, carrier_index, carrier = self.infer_direction_and_carrier(
+            loops, direction, carrier_index
+        )
 
         output = loops.knit(direction, carrier_index)
 
@@ -287,8 +305,8 @@ class Pattern(ABC):
     def tuck(
         self,
         loops: Loops,
-        carrier_index: int = None,
-        direction: CarrierDirection = None,
+        carrier_index: int | Carrier | None = None,
+        direction: CarrierDirection | None = None,
     ) -> KnitOut:
         """
         writes the knitout for tucking the specified loops
@@ -296,22 +314,9 @@ class Pattern(ABC):
 
         loops.clean()
         self.clean()
-
-        if carrier_index == None:
-            carrier = self.active_carrier
-            carrier_index = int(carrier)
-        elif type(carrier_index) == int:
-            carrier = self.get_carrier(carrier_index)
-        elif type(carrier_index) == Carrier:
-            carrier = carrier_index
-            carrier_index = int(carrier)
-        else:
-            raise TypeError(
-                f"carrier_index must be int or None not {type(carrier_index)}"
-            )
-
-        if direction == None:
-            direction = carrier.infer_direction(loops)
+        direction, carrier_index, carrier = self.infer_direction_and_carrier(
+            loops, direction, carrier_index
+        )
 
         output = loops.tuck(direction, carrier_index)
 
@@ -324,8 +329,8 @@ class Pattern(ABC):
     def miss(
         self,
         loops: Loops,
-        carrier_index: int = None,
-        direction: CarrierDirection = None,
+        carrier_index: int | Carrier | None = None,
+        direction: CarrierDirection | None = None,
     ) -> KnitOut:
         """
         writes the knitout for missing the specified loops
@@ -333,22 +338,9 @@ class Pattern(ABC):
 
         loops.clean()
         self.clean()
-
-        if carrier_index == None:
-            carrier = self.active_carrier
-            carrier_index = int(carrier)
-        elif type(carrier_index) == int:
-            carrier = self.get_carrier(carrier_index)
-        elif type(carrier_index) == Carrier:
-            carrier = carrier_index
-            carrier_index = int(carrier)
-        else:
-            raise TypeError(
-                f"carrier_index must be int or None not {type(carrier_index)}"
-            )
-
-        if direction == None:
-            direction = carrier.infer_direction(loops)
+        direction, carrier_index, carrier = self.infer_direction_and_carrier(
+            loops, direction, carrier_index
+        )
 
         output = loops.miss(direction, carrier_index)
 
@@ -366,25 +358,13 @@ class Pattern(ABC):
         self,
         loops: Loops,
         offset: int = 0,
-        carrier_index: int = None,
-        direction: CarrierDirection = None,
+        carrier_index: int | Carrier | None = None,
+        direction: CarrierDirection | None = None,
     ) -> Loops:
 
-        if carrier_index == None:
-            carrier = self.active_carrier
-            carrier_index = int(carrier)
-        elif type(carrier_index) == int:
-            carrier = self.get_carrier(carrier_index)
-        elif type(carrier_index) == Carrier:
-            carrier = carrier_index
-            carrier_index = int(carrier)
-        else:
-            raise TypeError(
-                f"carrier_index must be int or None not {type(carrier_index)}"
-            )
-
-        if direction == None:
-            direction = carrier.infer_direction(loops)
+        direction, carrier_index, carrier = self.infer_direction_and_carrier(
+            loops, direction, carrier_index
+        )
 
         loops.clean()
         self.clean()
@@ -415,8 +395,8 @@ class Pattern(ABC):
     def twisted_cast_on(
         self,
         needles: NeedleList,
-        carrier_index: int = None,
-        direction: CarrierDirection = None,
+        carrier_index: int | Carrier | None = None,
+        direction: CarrierDirection | None = None,
     ) -> Loops:
         """
         casts on needles using the twisted cast on and writes the knitout
@@ -424,18 +404,7 @@ class Pattern(ABC):
         """
         output = KnitOut()
 
-        if carrier_index == None:
-            carrier = self.active_carrier
-            carrier_index = int(carrier)
-        elif type(carrier_index) == int:
-            carrier = self.get_carrier(carrier_index)
-        elif type(carrier_index) == Carrier:
-            carrier = carrier_index
-            carrier_index = int(carrier)
-        else:
-            raise TypeError(
-                f"carrier_index must be int or None not {type(carrier_index)}"
-            )
+        carrier_index, carrier = self.infer_carrier(carrier_index)
 
         if direction == None:
             direction = carrier.infer_direction(needles)
@@ -478,8 +447,8 @@ class Pattern(ABC):
         self,
         loops: Loops,
         do_hold: bool = True,
-        carrier_index: int = None,
-        direction: CarrierDirection = None,
+        carrier_index: int | Carrier | None = None,
+        direction: CarrierDirection | None = None,
     ) -> None:
         """
         writes the knitout for binding off using the chain bind off
@@ -488,22 +457,9 @@ class Pattern(ABC):
 
         loops.clean()
         self.clean()
-
-        if carrier_index == None:
-            carrier = self.active_carrier
-            carrier_index = int(carrier)
-        elif type(carrier_index) == int:
-            carrier = self.get_carrier(carrier_index)
-        elif type(carrier_index) == Carrier:
-            carrier = carrier_index
-            carrier_index = int(carrier)
-        else:
-            raise TypeError(
-                f"carrier_index must be int or None not {type(carrier_index)}"
-            )
-
-        if direction == None:
-            direction = carrier.infer_direction(loops)
+        direction, carrier_index, carrier = self.infer_direction_and_carrier(
+            loops, direction, carrier_index
+        )
 
         loops = loops.sorted(direction)
 
