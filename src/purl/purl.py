@@ -117,7 +117,6 @@ class Pattern(ABC):
         """
 
         if not self.yarn_inserting_hook:
-            print("HI")
             return
 
         output = releasehook(self.yarn_inserting_hook)
@@ -236,14 +235,16 @@ class Pattern(ABC):
         """
 
         output_loops = Loops()
-
+        ns = list(self.all_loops.needles())
+        print(ns)
         for n in needles:
-            a_loop = Loop(n)
-            if a_loop not in self.all_loops:
+            try:
+                i = ns.index(n)
+            except:
                 raise Exception(
-                    f"You requested {a_loop} but there is no loop on that needle"
+                    f"You requested Loop({n}) but there is no loop on that needle"
                 )
-            output_loops.append(a_loop)
+            output_loops.append(self.all_loops[i])
 
         return output_loops
 

@@ -16,6 +16,7 @@
     - More often might not be correct but loops def are not being cleaned properly. I'm not totally sure how to fix this
   - [ ] cast on function seems right, but knits up weirdly. Not sure if the issue is the machine or the code.
     - I think this has to do with the lack of waste yarn. You could add some or do a alternating twisted tuck
+  - [ ] oh dear gods fix pattern.request_loops()
 
 # future ideas
 - [ ] verbatim-mode make embedding literal knitout nicer

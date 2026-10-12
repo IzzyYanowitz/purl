@@ -164,6 +164,14 @@ class Loops:
         self.loops = loops
 
     @clean_loops
+    def needles(self) -> NeedleList:
+        """
+        returns the list of needles the loops are sitting on
+        """
+
+        return [l.needle for l in self.loops]
+
+    @clean_loops
     def __repr__(self):
         return "[%s]" % ", ".join([str(l) for l in self.loops])
 

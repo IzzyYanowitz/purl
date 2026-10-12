@@ -94,6 +94,9 @@ class NeedleList:
     def __add__(self, other):
         return NeedleList(self.needles + other.needles)
 
+    def __list__(self):
+        return list(self.needles)
+
     def assert_same_bed(self) -> bool:
         if len({needle.bed for needle in self.needles}) == 1:
             return True
