@@ -3,6 +3,7 @@
 
 import sys
 from pathlib import Path
+from os import path, makedirs
 
 from itertools import chain
 from functools import wraps
@@ -18,6 +19,7 @@ from knitout_compilers.compile_knitout import knitout_to_dat
 
 
 class Pattern(ABC):
+
     def __init__(
         self,
         filename: str,
@@ -26,10 +28,11 @@ class Pattern(ABC):
         gauge: int = 13,
         bed_width: int = 450,
         justify_position: str = "Keep",
+        copy_to_drive: bool = False,
     ):
         # program settings
         self.filename = filename
-        self.generate_output_files()
+        self.generate_output_files(copy_to_drive)
 
         # machine settings
         self.carriers = [Carrier(i) for i in range(1, 11)]
@@ -62,10 +65,26 @@ class Pattern(ABC):
         # knitout
         self.knitout = KnitOut([])
 
-    def generate_output_files(self):
+    def generate_output_files(self, copy_to_drive: bool = False):
+
         dir_path = str(Path(sys.modules["__main__"].__file__).resolve().parent)
+        if copy_to_drive:
+            dir_path = "/Volumes/NO NAME/_Izzy Yanowitz/" + str(
+                path.basename(Path(sys.modules["__main__"].__file__).resolve().parent)
+            )
+
         self.knitout_file_name = dir_path + "/" + self.filename + ".k"
         self.dat_file_name = dir_path + "/" + self.filename + ".dat"
+
+        if not copy_to_drive:
+            return
+
+        if path.isdir("/Volumes/NO NAME/_Izzy Yanowitz"):
+            if not path.isdir(dir_path):
+                print(f"Making dirs to {dir_path}")
+                makedirs(dir_path)
+        else:
+            raise Exception("No drive connected")
 
     def header(self) -> KnitOut:
         """writes the knitout for the header"""
@@ -125,16 +144,15 @@ class Pattern(ABC):
         self.knitout += output
         return output
 
-    def cut(self, carrier: int | Carrier) -> KnitOut:
+    def cut(self, carrier: int | Carrier | None = None) -> KnitOut:
         """synonym for outhook"""
         return self.outhook(carrier)
 
-    def outhook(self, carrier: int | Carrier) -> KnitOut:
+    def outhook(self, carrier: int | Carrier | None = None) -> KnitOut:
         """
         outhooks the current carrier
         """
-        if type(carrier) == int:
-            carrier = self.all_carriers[carrier - 1]
+        carrier = self.infer_carrier(carrier)
 
         if carrier not in self.inhooked_carriers:
             print(

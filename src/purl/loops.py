@@ -36,6 +36,54 @@ def moves_loop(func):
     return wrapper
 
 
+def clean_loops(func):
+    """removes duplicate loops from a Loops object"""
+
+    @wraps(func)
+    def wrapper(self, *args, **kwargs):
+        seen_needles = set()
+        safe_loops = []
+        for i, l in enumerate(self.loops):
+
+            if l.is_obsolete:
+                continue
+            elif l.needle in seen_needles:
+                l.is_obsolete = True
+            else:
+                safe_loops.append(l)
+                seen_needles.add(l.needle)
+
+        self.loops = safe_loops
+
+        output = func(self, *args, **kwargs)
+
+        seen_needles = set()
+        safe_loops = []
+        for i, l in enumerate(self.loops):
+            if l.needle not in seen_needles:
+                safe_loops.append(l)
+                seen_needles.add(l.needle)
+
+        self.loops = safe_loops
+
+        return output
+
+    return wrapper
+
+
+def needs_loops(func):
+    """checks if Loops object has loops
+    throws an error if not"""
+
+    @wraps(func)
+    def wrapper(self, *args, **kwargs):
+
+        self.assert_has_loops()
+        return func(self, *args, **kwargs)
+
+    return wrapper
+
+
 @total_ordering
 class Loop:
     def __init__(self, needle: Needle):
@@ -119,54 +167,6 @@ class Loop:
         return xfer(source_needle=self.needle, destination_needle=destination_needle)
 
 
-def clean_loops(func):
-    """removes duplicate loops from a Loops object"""
-
-    @wraps(func)
-    def wrapper(self, *args, **kwargs):
-        seen_needles = set()
-        safe_loops = []
-        for i, l in enumerate(self.loops):
-
-            if l.is_obsolete:
-                continue
-            elif l.needle in seen_needles:
-                l.is_obsolete = True
-            else:
-                safe_loops.append(l)
-                seen_needles.add(l.needle)
-
-        self.loops = safe_loops
-
-        output = func(self, *args, **kwargs)
-
-        seen_needles = set()
-        safe_loops = []
-        for i, l in enumerate(self.loops):
-            if l.needle not in seen_needles:
-                safe_loops.append(l)
-                seen_needles.add(l.needle)
-
-        self.loops = safe_loops
-
-        return output
-
-    return wrapper
-
-
-def needs_loops(func):
-    """checks if Loops object has loops
-    throws an error if not"""
-
-    @wraps(func)
-    def wrapper(self, *args, **kwargs):
-
-        self.assert_has_loops()
-        return func(self, *args, **kwargs)
-
-    return wrapper
-
-
 class Loops:
 
     def __init__(self, loops: list[Loop] = []):
@@ -201,6 +201,7 @@ class Loops:
     def __iter__(self):
         return iter(self.loops)
 
+    @clean_loops
     def __contains__(self, l: Loop) -> bool:
         for loop in self.loops:
             if l.needle == loop.needle:
