@@ -205,14 +205,14 @@ class Pattern(ABC):
         return carrier
 
     def request_needles(
-        self, start: int, end: int, bed: KnittingMachineBed
+        self, start: int, width: int, bed: KnittingMachineBed
     ) -> NeedleList:
         """
         returns a list of needles going from start up to but not including end on bed
         Precondition: 0 < start <= end <= bed_width
         request_needles(1, 5, KnittingMachineBed.FRONT) = [f1, f2, f3, f4]
         """
-
+        end = start + width
         if start < 0 or start > end or end > self.front_needles.len():
             raise ValueError(
                 f"ERROR: start and end must be of the form 0 < start <= end <= bed_width not {start = }, {end = }"
@@ -254,7 +254,7 @@ class Pattern(ABC):
 
         output_loops = Loops()
         ns = list(self.all_loops.needles())
-        print(ns)
+
         for n in needles:
             try:
                 i = ns.index(n)
@@ -322,7 +322,7 @@ class Pattern(ABC):
 
     def infer_direction_and_carrier(
         self,
-        loops: Loops,
+        loops: Loops | NeedleList,
         direction: CarrierDirection | None = None,
         carrier: int | Carrier | None = None,
     ) -> tuple[CarrierDirection, Carrier]:
@@ -366,6 +366,25 @@ class Pattern(ABC):
         self.knitout += output
 
         carrier.move(direction, loops)
+
+    def needle_tuck(
+        self,
+        needles: NeedleList,
+        carrier: int | Carrier | None = None,
+        direction: CarrierDirection | None = None,
+    ):
+        """tucks needles, returns the formed loops"""
+
+        direction, carrier = self.infer_direction_and_carrier(
+            needles, direction, carrier
+        )
+        needles = needles.sorted(direction)
+        carrier.set_position(needles[-1])
+        for n in needles:
+            self.knitout += tuck(direction, n, carrier.index)
+        ls = self.make_loops(needles)
+
+        return ls
 
     @clean_input
     def miss(
