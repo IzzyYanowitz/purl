@@ -57,16 +57,32 @@ def clean_loops(func):
 
         output = func(self, *args, **kwargs)
 
-        seen_needles = set()
-        safe_loops = []
-        for i, l in enumerate(self.loops):
-            if l.needle not in seen_needles:
-                safe_loops.append(l)
-                seen_needles.add(l.needle)
-
         self.loops = safe_loops
 
         return output
+
+        """ ls = self.loops
+        seen = []
+        clean = []
+
+        for l in ls:
+            try:
+                i = seen.index(l.needle)
+                l.is_obsolete = True
+                l.superceded_by = ls[i]
+            except ValueError:
+                s = l.superceded_by
+                if type(s) != type(None) and s.needle not in seen:
+                    clean.append(s)
+                elif not l.is_obsolete:
+                    seen.append(l.needle)
+                    clean.append(l)
+
+        self.loops = clean
+
+        output = func(self, *args, **kwargs)
+
+        return output """
 
     return wrapper
 
@@ -89,6 +105,7 @@ class Loop:
     def __init__(self, needle: Needle):
         self.needle = needle
         self.is_obsolete = False
+        self.superceded_by = None
         self.debug_name = str(time())
 
     def __repr__(self):
